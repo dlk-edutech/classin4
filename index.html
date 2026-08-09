@@ -14,7 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <style>
-        body { background-color: #f8f9fa; }
+        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
+        .main-content { flex: 1; }
         .view-section { display: none; }
         .active-view { display: block; }
         .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -36,7 +37,7 @@
     <p class="text-muted">Vui lòng không đóng trình duyệt!</p>
 </div>
 
-<div class="container mt-4 mb-5">
+<div class="container mt-4 mb-5 main-content">
     <h2 class="text-center text-primary mb-4">Cổng Thông Tin Học Sinh</h2>
     
     <!-- MENU CHỌN QUYỀN -->
@@ -176,6 +177,13 @@
     </div>
 </div>
 
+<!-- THÔNG TIN BẢN QUYỀN -->
+<footer class="text-center py-3 mt-auto bg-light border-top">
+    <div class="container">
+        <small class="text-muted"><strong>Bản quyền:</strong> Dlk Edu Tech - Phát triển bởi tranhongdan@tranphudlk.edu.vn</small>
+    </div>
+</footer>
+
 <script>
     // 1. Cấu hình Firebase
     const firebaseConfig = {
@@ -260,7 +268,7 @@
         snapshot.docs.forEach((doc) => {
             batch.delete(doc.ref);
             count++;
-            if (count === 500) { // Giới hạn batch của Firestore là 500
+            if (count === 500) { 
                 batches.push(batch.commit());
                 batch = db.batch();
                 count = 0;
@@ -388,11 +396,10 @@
             let studentsList = [];
             studentSnap.forEach(doc => { studentsList.push(doc.data()); });
             
-            // SẮP XẾP HỌC SINH THEO SỐ THỨ TỰ (STT)
+            // Sắp xếp
             studentsList.sort((a, b) => {
                 const sttA = parseInt(a['STT']);
                 const sttB = parseInt(b['STT']);
-                // Nếu STT trống hoặc không phải số, đẩy xuống cuối
                 const valA = isNaN(sttA) ? 9999 : sttA;
                 const valB = isNaN(sttB) ? 9999 : sttB;
                 return valA - valB;
