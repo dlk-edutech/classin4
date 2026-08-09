@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Quản Lý Thông Tin Học Sinh - THPT Số 1 Trần Phú</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <!-- SheetJS cho Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -14,16 +21,51 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <style>
-        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
-        .main-content { flex: 1; }
-        .view-section { display: none; }
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f1f5f9;
+            --card-radius: 12px;
+        }
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color); 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            color: #334155;
+        }
+        .navbar { background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .navbar-brand { font-weight: 700; color: var(--primary-color) !important; }
+        .main-content { flex: 1; padding-top: 2rem; padding-bottom: 3rem; }
+        .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
         .active-view { display: block; }
-        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        /* Màn hình loading (chờ upload) */
+        .card { 
+            border: none; 
+            border-radius: var(--card-radius); 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
+            margin-bottom: 1.5rem;
+        }
+        .card-header { 
+            background-color: #ffffff; 
+            border-bottom: 1px solid #f1f5f9; 
+            border-radius: var(--card-radius) var(--card-radius) 0 0 !important;
+            padding: 1.25rem 1.5rem;
+            font-weight: 600;
+        }
+        .form-control, .form-select { border-radius: 8px; padding: 0.6rem 1rem; border: 1px solid #cbd5e1; }
+        .form-control:focus, .form-select:focus { box-shadow: 0 0 0 3px rgba(37,99,235,0.1); border-color: var(--primary-color); }
+        .btn { border-radius: 8px; padding: 0.5rem 1.25rem; font-weight: 500; transition: all 0.2s; }
+        
+        table th { background-color: #f8fafc !important; color: #475569; font-weight: 600; }
+        .readonly-field { background-color: #f1f5f9; color: #64748b; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Màn hình loading */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.9); z-index: 9999;
+            background: rgba(255, 255, 255, 0.95); z-index: 9999;
             display: none; flex-direction: column; align-items: center; justify-content: center;
         }
     </style>
@@ -33,46 +75,89 @@
 <!-- MÀN HÌNH CHỜ (LOADING) -->
 <div id="loading-overlay">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <h4 class="mt-3 text-primary" id="loading-text">Đang xử lý dữ liệu...</h4>
-    <p class="text-muted">Vui lòng không đóng trình duyệt!</p>
+    <h5 class="mt-3 text-primary fw-semibold" id="loading-text">Đang xử lý dữ liệu...</h5>
+    <p class="text-muted small">Vui lòng không đóng trình duyệt!</p>
 </div>
 
-<div class="container mt-4 mb-5 main-content">
-    <h2 class="text-center text-primary mb-4">Cổng Thông Tin Học Sinh</h2>
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="#" onclick="showView('role-selector')">
+            🏫 THPT Số 1 Trần Phú
+        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary d-none" id="btn-logout" onclick="logout()">Đăng xuất</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container main-content">
     
     <!-- MENU CHỌN QUYỀN -->
-    <div id="role-selector" class="text-center mb-4 active-view view-section">
-        <button class="btn btn-outline-success m-2" onclick="showView('guest-view'); loadGuestData()">Khách Truy Cập</button>
-        <button class="btn btn-outline-info m-2" onclick="showView('student-login')">Học Sinh</button>
-        <button class="btn btn-outline-danger m-2" onclick="showView('admin-login')">Quản Trị Viên</button>
+    <div id="role-selector" class="view-section active-view">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">Cổng Thông Tin Học Sinh</h2>
+            <p class="text-muted">Vui lòng chọn vai trò để tiếp tục truy cập vào hệ thống</p>
+        </div>
+        <div class="row justify-content-center g-4">
+            <div class="col-md-4 col-sm-6">
+                <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('guest-view'); loadGuestData()">
+                    <h3 class="mb-3">🔍</h3>
+                    <h5 class="fw-bold text-success">Khách Truy Cập</h5>
+                    <p class="text-muted small mb-0">Tra cứu thông tin lớp học, tổ hợp môn và danh sách học sinh.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('student-login')">
+                    <h3 class="mb-3">🎓</h3>
+                    <h5 class="fw-bold text-primary">Học Sinh</h5>
+                    <p class="text-muted small mb-0">Đăng nhập để xem và cập nhật thông tin cá nhân của bạn.</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('admin-login')">
+                    <h3 class="mb-3">⚙️</h3>
+                    <h5 class="fw-bold text-danger">Quản Trị Viên</h5>
+                    <p class="text-muted small mb-0">Khu vực dành riêng cho nhà trường để quản lý dữ liệu.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- KHÁCH: XEM THÔNG TIN -->
     <div id="guest-view" class="view-section">
-        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Quay lại trang chủ</button>
-        <div class="card p-4">
-            <h4>Tra cứu thông tin lớp</h4>
-            <select id="guest-class-select" class="form-select mb-3" onchange="fetchClassDetails()">
-                <option value="">-- Chọn Lớp --</option>
-            </select>
-            
-            <div id="guest-class-info" style="display:none;">
-                <p><strong>Giáo viên chủ nhiệm:</strong> <span id="g-teacher" class="text-primary"></span></p>
-                <p><strong>Tổ hợp môn:</strong> <span id="g-combo" class="text-danger fw-bold"></span></p>
-                <ul>
-                    <li><strong>Môn học - HĐGD bắt buộc:</strong> <span id="g-mandatory"></span></li>
-                    <li><strong>Môn tự chọn:</strong> <span id="g-elective"></span></li>
-                    <li><strong>Các môn có chuyên đề:</strong> <span id="g-specialized"></span></li>
-                </ul>
+        <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
+        <div class="card">
+            <div class="card-header text-success">Tra cứu thông tin lớp</div>
+            <div class="card-body p-4">
+                <select id="guest-class-select" class="form-select form-select-lg mb-4" onchange="fetchClassDetails()">
+                    <option value="">-- Chọn Lớp để xem thông tin --</option>
+                </select>
                 
-                <h5 class="mt-4">Danh sách học sinh</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr><th>STT</th><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th></tr>
-                        </thead>
-                        <tbody id="guest-student-list"></tbody>
-                    </table>
+                <div id="guest-class-info" style="display:none;">
+                    <div class="row bg-light p-3 rounded mb-4">
+                        <div class="col-md-6 mb-2 mb-md-0">
+                            <p class="mb-1"><strong>Giáo viên chủ nhiệm:</strong> <span id="g-teacher" class="text-primary fw-medium"></span></p>
+                            <p class="mb-0"><strong>Mã Tổ hợp:</strong> <span id="g-combo" class="badge bg-primary"></span></p>
+                        </div>
+                        <div class="col-md-6 border-start border-2">
+                            <ul class="list-unstyled mb-0 small">
+                                <li class="mb-1"><strong>Bắt buộc:</strong> <span id="g-mandatory"></span></li>
+                                <li class="mb-1"><strong>Tự chọn:</strong> <span id="g-elective"></span></li>
+                                <li><strong>Chuyên đề:</strong> <span id="g-specialized"></span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h6 class="fw-bold mb-3">Danh sách học sinh</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr><th width="8%">STT</th><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th></tr>
+                            </thead>
+                            <tbody id="guest-student-list"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,112 +165,176 @@
 
     <!-- ADMIN: ĐĂNG NHẬP -->
     <div id="admin-login" class="view-section">
-        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Quay lại trang chủ</button>
-        <div class="card p-4 mx-auto" style="max-width: 400px;">
-            <h4 class="text-center">Đăng nhập Admin</h4>
-            <input type="password" id="admin-pw" class="form-control mb-3" placeholder="Nhập mã đăng nhập">
-            <button class="btn btn-danger w-100" onclick="loginAdmin()">Đăng Nhập</button>
+        <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
+        <div class="card mx-auto" style="max-width: 420px;">
+            <div class="card-body p-4 text-center">
+                <h4 class="fw-bold mb-4">Quản Trị Hệ Thống</h4>
+                <input type="password" id="admin-pw" class="form-control form-control-lg mb-3" placeholder="Nhập mã đăng nhập quản trị">
+                <button class="btn btn-danger btn-lg w-100" onclick="loginAdmin()">Xác Nhận Đăng Nhập</button>
+            </div>
         </div>
     </div>
 
     <!-- ADMIN: BẢNG ĐIỀU KHIỂN -->
     <div id="admin-dashboard" class="view-section">
-        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Đăng xuất Admin</button>
         
-        <div class="card p-4 mb-4 border-primary">
-            <h4 class="text-primary">Nạp Dữ Liệu (Từ file Excel)</h4>
-            <div class="alert alert-warning py-2 mb-3">
-                <small><b>Lưu ý:</b> Hệ thống sẽ tự động <b>XÓA SẠCH</b> dữ liệu cũ trước khi nạp dữ liệu mới cho từng phần tương ứng.</small>
-            </div>
-            <div class="row">
-                <div class="col-md-4 mb-3 border-end">
-                    <label class="fw-bold">1. Thông tin Lớp</label>
-                    <input type="file" id="file-classes" class="form-control mb-2" accept=".xlsx, .xls">
-                    <button class="btn btn-sm btn-primary w-100" onclick="processUpload('file-classes', 'classes')">Bắt đầu tải dữ liệu</button>
-                    <small class="text-muted d-block mt-2">Cột yêu cầu: Lớp, Mã TH môn, Giáo viên chủ nhiệm</small>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold mb-0">Bảng Điều Khiển Admin</h3>
+            <button class="btn btn-success shadow-sm" onclick="exportDataToExcel()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel me-1" viewBox="0 0 16 16" style="margin-top:-3px;"><path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/></svg>
+                Tải Xuống Dữ Liệu
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-header text-primary">Cập Nhật Dữ Liệu (Excel)</div>
+            <div class="card-body p-4">
+                <div class="alert alert-info py-2 small mb-4">
+                    <strong>Lưu ý quan trọng:</strong> Khi nạp file mới, dữ liệu cũ của danh mục đó sẽ bị xóa để thay thế bằng dữ liệu mới nhất.
                 </div>
-                <div class="col-md-4 mb-3 border-end">
-                    <label class="fw-bold">2. Tổ hợp môn học</label>
-                    <input type="file" id="file-combos" class="form-control mb-2" accept=".xlsx, .xls">
-                    <button class="btn btn-sm btn-primary w-100" onclick="processUpload('file-combos', 'combos')">Bắt đầu tải dữ liệu</button>
-                    <small class="text-muted d-block mt-2">Cột yêu cầu: Mã TH môn, Môn học - hoạt động GD bắt buộc, Môn tự chọn, Các môn có chuyên đề</small>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label class="fw-bold">3. Danh sách học sinh</label>
-                    <input type="file" id="file-students" class="form-control mb-2" accept=".xlsx, .xls">
-                    <button class="btn btn-sm btn-primary w-100" onclick="processUpload('file-students', 'students')">Bắt đầu tải dữ liệu</button>
-                    <small class="text-muted d-block mt-2">Cột yêu cầu: <b>STT</b>, Mã, Họ và tên, Lớp, Ngày sinh, Giới tính, Dân tộc, Ghi chú</small>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label class="fw-bold mb-2 small text-uppercase">1. Thông tin Lớp</label>
+                        <input type="file" id="file-classes" class="form-control mb-2" accept=".xlsx, .xls">
+                        <button class="btn btn-primary w-100" onclick="processUpload('file-classes', 'classes')">Tải Lên Lớp</button>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold mb-2 small text-uppercase">2. Tổ hợp môn</label>
+                        <input type="file" id="file-combos" class="form-control mb-2" accept=".xlsx, .xls">
+                        <button class="btn btn-primary w-100" onclick="processUpload('file-combos', 'combos')">Tải Lên Tổ Hợp</button>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold mb-2 small text-uppercase">3. Học sinh</label>
+                        <input type="file" id="file-students" class="form-control mb-2" accept=".xlsx, .xls">
+                        <button class="btn btn-primary w-100" onclick="processUpload('file-students', 'students')">Tải Lên Học Sinh</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="card p-4 border-warning">
-            <h4 class="text-warning">Cài đặt quyền chỉnh sửa cho Học sinh</h4>
-            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-dob"><label>Cho phép sửa Ngày sinh</label></div>
-            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-gender"><label>Cho phép sửa Giới tính</label></div>
-            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-ethnicity"><label>Cho phép sửa Dân tộc</label></div>
-            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-notes"><label>Cho phép sửa Ghi chú</label></div>
-            <button class="btn btn-warning mt-3" onclick="savePermissions()">Lưu cài đặt quyền</button>
-            <hr>
-            <button class="btn btn-outline-danger" onclick="changeAdminPw()">Đổi mã đăng nhập Admin</button>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header text-warning">Quyền Chỉnh Sửa Của Học Sinh</div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-sm-6 mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="perm-id">
+                                    <label class="form-check-label">Cho phép đổi Mã học sinh</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="perm-dob">
+                                    <label class="form-check-label">Cho phép sửa Ngày sinh</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="perm-gender">
+                                    <label class="form-check-label">Cho phép sửa Giới tính</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="perm-ethnicity">
+                                    <label class="form-check-label">Cho phép sửa Dân tộc</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="perm-notes">
+                                    <label class="form-check-label">Cho phép sửa Ghi chú</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-warning mt-4 px-4" onclick="savePermissions()">Lưu Thiết Lập</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header text-danger">Bảo Mật</div>
+                    <div class="card-body p-4 text-center d-flex flex-column justify-content-center">
+                        <p class="text-muted small mb-3">Đổi mã đăng nhập để bảo vệ trang quản trị khỏi truy cập trái phép.</p>
+                        <button class="btn btn-outline-danger w-100" onclick="changeAdminPw()">Đổi Mã Đăng Nhập</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- HỌC SINH: ĐĂNG NHẬP -->
     <div id="student-login" class="view-section">
-        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Quay lại trang chủ</button>
-        <div class="card p-4 mx-auto" style="max-width: 400px;">
-            <h4 class="text-center text-info">Học Sinh Đăng Nhập</h4>
-            <input type="text" id="student-id" class="form-control mb-3" placeholder="Nhập Mã học sinh của bạn">
-            <button class="btn btn-info w-100 text-white" onclick="loginStudent()">Truy Cập</button>
+        <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
+        <div class="card mx-auto" style="max-width: 400px;">
+            <div class="card-body p-4 text-center">
+                <h4 class="fw-bold mb-4 text-primary">Học Sinh Đăng Nhập</h4>
+                <input type="text" id="student-id" class="form-control form-control-lg mb-3" placeholder="Nhập Mã học sinh">
+                <button class="btn btn-primary btn-lg w-100" onclick="loginStudent()">Truy Cập Hồ Sơ</button>
+            </div>
         </div>
     </div>
 
     <!-- HỌC SINH: CHỈNH SỬA THÔNG TIN -->
     <div id="student-dashboard" class="view-section">
-        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Đăng xuất</button>
-        <div class="card p-4 mx-auto border-info" style="max-width: 600px;">
-            <h4 class="text-center text-info mb-4">Thông Tin Cá Nhân</h4>
-            <input type="hidden" id="s-id">
-            
-            <div class="alert alert-light border">
-                <div class="mb-2"><strong>Mã Học Sinh:</strong> <span id="s-id-display" class="text-primary fw-bold"></span></div>
-                <div class="mb-2"><strong>Họ và tên:</strong> <span id="s-name" class="fw-bold"></span></div>
-                <div class="mb-2"><strong>Lớp:</strong> <span id="s-class"></span></div>
+        <div class="card mx-auto" style="max-width: 650px;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Hồ Sơ Cá Nhân</span>
             </div>
-            
-            <p class="text-muted small">* Các trường thông tin có màu xám là dữ liệu đã bị khóa bởi Nhà trường.</p>
+            <div class="card-body p-4">
+                <input type="hidden" id="s-old-id">
+                
+                <div class="bg-light p-3 rounded mb-4 text-center">
+                    <h4 class="fw-bold text-primary mb-1" id="s-name"></h4>
+                    <p class="mb-0 text-muted">Lớp: <span id="s-class" class="fw-bold"></span></p>
+                </div>
+                
+                <p class="text-muted small mb-3 fst-italic">Các trường có nền xám đã được nhà trường bảo mật. Vui lòng liên hệ GVCN nếu có sai sót.</p>
 
-            <div class="mb-3">
-                <label class="fw-bold">Ngày sinh:</label>
-                <input type="text" id="s-dob" class="form-control" readonly>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Mã học sinh (ID):</label>
+                        <input type="text" id="s-code" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Ngày sinh:</label>
+                        <input type="text" id="s-dob" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Giới tính:</label>
+                        <input type="text" id="s-gender" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Dân tộc:</label>
+                        <input type="text" id="s-ethnicity" class="form-control readonly-field" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold small">Ghi chú:</label>
+                        <input type="text" id="s-notes" class="form-control readonly-field" readonly>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success w-100 mt-4 py-2" id="btn-save-student" onclick="updateStudentInfo()" style="display:none;">
+                    Lưu Thông Tin Cập Nhật
+                </button>
             </div>
-            <div class="mb-3">
-                <label class="fw-bold">Giới tính:</label>
-                <input type="text" id="s-gender" class="form-control" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="fw-bold">Dân tộc:</label>
-                <input type="text" id="s-ethnicity" class="form-control" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="fw-bold">Ghi chú:</label>
-                <input type="text" id="s-notes" class="form-control" readonly>
-            </div>
-            <button class="btn btn-success w-100 mt-3" id="btn-save-student" onclick="updateStudentInfo()" style="display:none;">Lưu Thông Tin Cập Nhật</button>
         </div>
     </div>
 </div>
 
 <!-- THÔNG TIN BẢN QUYỀN -->
-<footer class="text-center py-3 mt-auto bg-light border-top">
+<footer class="text-center py-3 bg-white border-top">
     <div class="container">
         <small class="text-muted"><strong>Bản quyền:</strong> Dlk Edu Tech - Phát triển bởi tranhongdan@tranphudlk.edu.vn</small>
     </div>
 </footer>
 
 <script>
-    // 1. Cấu hình Firebase
+    // ==========================================
+    // Cấu hình Firebase
+    // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyBFsuQpiwLkGm2yQ-GiBPFpdsZr-wWABxk",
         authDomain: "class-in4.firebaseapp.com",
@@ -202,6 +351,19 @@
     function showView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
         document.getElementById(viewId).classList.add('active-view');
+        
+        const btnLogout = document.getElementById('btn-logout');
+        if (viewId === 'admin-dashboard' || viewId === 'student-dashboard') {
+            btnLogout.classList.remove('d-none');
+        } else {
+            btnLogout.classList.add('d-none');
+        }
+    }
+
+    function logout() {
+        showView('role-selector');
+        document.getElementById('admin-pw').value = '';
+        document.getElementById('student-id').value = '';
     }
 
     function toggleLoading(show, text = 'Đang xử lý dữ liệu...') {
@@ -219,7 +381,6 @@
             if (pw === realPw) {
                 showView('admin-dashboard');
                 loadPermissions();
-                document.getElementById('admin-pw').value = '';
             } else {
                 alert('Mã đăng nhập không chính xác!');
             }
@@ -236,7 +397,6 @@
         }
     }
 
-    // Đọc file Excel trả về JSON (Promise)
     function readExcelFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -247,55 +407,42 @@
                     const sheetName = workbook.SheetNames[0];
                     const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
                     resolve(jsonData);
-                } catch (err) {
-                    reject(err);
-                }
+                } catch (err) { reject(err); }
             };
             reader.onerror = (err) => reject(err);
             reader.readAsArrayBuffer(file);
         });
     }
 
-    // Xóa toàn bộ dữ liệu trong 1 collection (Xóa Batch để tránh quá tải)
     async function clearCollection(collectionName) {
         const snapshot = await db.collection(collectionName).get();
         if(snapshot.empty) return;
-
         const batches = [];
         let batch = db.batch();
         let count = 0;
-
         snapshot.docs.forEach((doc) => {
             batch.delete(doc.ref);
             count++;
-            if (count === 500) { 
-                batches.push(batch.commit());
-                batch = db.batch();
-                count = 0;
-            }
+            if (count === 500) { batches.push(batch.commit()); batch = db.batch(); count = 0; }
         });
         if (count > 0) batches.push(batch.commit());
         await Promise.all(batches);
     }
 
-    // Hàm tổng xử lý Upload
     async function processUpload(inputId, collectionName) {
         const fileInput = document.getElementById(inputId);
         const file = fileInput.files[0];
-        if (!file) {
-            alert("Vui lòng chọn file Excel trước khi bấm tải dữ liệu!");
-            return;
-        }
+        if (!file) { alert("Vui lòng chọn file Excel!"); return; }
 
         try {
-            toggleLoading(true, 'Đang đọc file Excel...');
+            toggleLoading(true, 'Đang đọc dữ liệu Excel...');
             const jsonData = await readExcelFile(file);
-            if (jsonData.length === 0) throw new Error("File Excel không có dữ liệu!");
+            if (jsonData.length === 0) throw new Error("File rỗng!");
 
-            toggleLoading(true, `Đang xóa dữ liệu cũ của danh mục (${collectionName})...`);
+            toggleLoading(true, `Đang xóa dữ liệu cũ (${collectionName})...`);
             await clearCollection(collectionName);
 
-            toggleLoading(true, `Đang ghi dữ liệu mới (${jsonData.length} dòng)...`);
+            toggleLoading(true, `Đang nạp ${jsonData.length} bản ghi...`);
             const batches = [];
             let batch = db.batch();
             let count = 0;
@@ -307,25 +454,58 @@
                 if(collectionName === 'students' && item['Mã']) docId = String(item['Mã']);
                 
                 if(docId) {
-                    const docRef = db.collection(collectionName).doc(docId);
-                    batch.set(docRef, item);
+                    batch.set(db.collection(collectionName).doc(docId), item);
                     count++;
-                    if (count === 500) {
-                        batches.push(batch.commit());
-                        batch = db.batch();
-                        count = 0;
-                    }
+                    if (count === 500) { batches.push(batch.commit()); batch = db.batch(); count = 0; }
                 }
             });
             if (count > 0) batches.push(batch.commit());
             await Promise.all(batches);
 
             toggleLoading(false);
-            alert(`✅ Nạp dữ liệu THÀNH CÔNG (${jsonData.length} bản ghi) vào hệ thống!`);
-            fileInput.value = ''; // Reset input
+            alert(`✅ Tải lên THÀNH CÔNG!`);
+            fileInput.value = ''; 
         } catch (error) {
             toggleLoading(false);
-            alert('Lỗi quá trình nạp dữ liệu: ' + error.message);
+            alert('Lỗi: ' + error.message);
+        }
+    }
+
+    // TẢI XUỐNG DỮ LIỆU EXCEL (Yêu cầu 3)
+    async function exportDataToExcel() {
+        try {
+            toggleLoading(true, 'Đang gom dữ liệu, vui lòng chờ...');
+            const wb = XLSX.utils.book_new();
+
+            // Lấy Lớp
+            const clsSnap = await db.collection('classes').get();
+            const clsData = [];
+            clsSnap.forEach(d => clsData.push(d.data()));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clsData), "Thông tin Lớp");
+
+            // Lấy Tổ hợp
+            const cbSnap = await db.collection('combos').get();
+            const cbData = [];
+            cbSnap.forEach(d => cbData.push(d.data()));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cbData), "Tổ Hợp Môn");
+
+            // Lấy Học Sinh
+            const stSnap = await db.collection('students').get();
+            const stData = [];
+            stSnap.forEach(d => stData.push(d.data()));
+            stData.sort((a, b) => {
+                const valA = isNaN(parseInt(a['STT'])) ? 9999 : parseInt(a['STT']);
+                const valB = isNaN(parseInt(b['STT'])) ? 9999 : parseInt(b['STT']);
+                return valA - valB;
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stData), "Học Sinh");
+
+            // Xuất file
+            XLSX.writeFile(wb, "DuLieuTruong_THPT_TranPhu.xlsx");
+            toggleLoading(false);
+        } catch (error) {
+            toggleLoading(false);
+            alert('Lỗi xuất dữ liệu: ' + error.message);
         }
     }
 
@@ -333,6 +513,7 @@
         const doc = await db.collection('config').doc('permissions').get();
         if(doc.exists) {
             const d = doc.data();
+            document.getElementById('perm-id').checked = d.allowId || false;
             document.getElementById('perm-dob').checked = d.allowDob || false;
             document.getElementById('perm-gender').checked = d.allowGender || false;
             document.getElementById('perm-ethnicity').checked = d.allowEthnicity || false;
@@ -342,48 +523,45 @@
 
     async function savePermissions() {
         await db.collection('config').doc('permissions').set({
+            allowId: document.getElementById('perm-id').checked,
             allowDob: document.getElementById('perm-dob').checked,
             allowGender: document.getElementById('perm-gender').checked,
             allowEthnicity: document.getElementById('perm-ethnicity').checked,
             allowNotes: document.getElementById('perm-notes').checked
         }, { merge: true });
-        alert('Đã cập nhật cấu hình khóa/mở khóa thông tin học sinh!');
+        alert('Đã cập nhật quyền học sinh!');
     }
 
-    // ================= CHỨC NĂNG KHÁCH (GUEST) =================
+    // ================= CHỨC NĂNG KHÁCH =================
     async function loadGuestData() {
         const select = document.getElementById('guest-class-select');
-        select.innerHTML = '<option value="">-- Đang tải danh sách lớp... --</option>';
+        select.innerHTML = '<option value="">-- Đang tải dữ liệu... --</option>';
         try {
-            const snapshot = await db.collection('classes').get();
-            select.innerHTML = '<option value="">-- Chọn Lớp --</option>';
-            snapshot.forEach(doc => {
+            const snap = await db.collection('classes').get();
+            select.innerHTML = '<option value="">-- Chọn Lớp để xem thông tin --</option>';
+            snap.forEach(doc => {
                 select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
             });
-        } catch (error) {
-            select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
-        }
+        } catch (e) { select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>'; }
     }
 
     async function fetchClassDetails() {
         const className = document.getElementById('guest-class-select').value;
         const infoDiv = document.getElementById('guest-class-info');
-        
         if(!className) { infoDiv.style.display = 'none'; return; }
         
         try {
-            // Thông tin lớp
             const classDoc = await db.collection('classes').doc(className).get();
             if(classDoc.exists) {
                 const cData = classDoc.data();
-                document.getElementById('g-teacher').innerText = cData['Giáo viên chủ nhiệm'] || 'Chưa cập nhật';
+                document.getElementById('g-teacher').innerText = cData['Giáo viên chủ nhiệm'] || 'N/A';
                 const comboId = cData['Mã TH môn'] || '';
                 document.getElementById('g-combo').innerText = comboId;
                 
                 if(comboId) {
-                    const comboDoc = await db.collection('combos').doc(String(comboId)).get();
-                    if(comboDoc.exists) {
-                        const cbData = comboDoc.data();
+                    const cbDoc = await db.collection('combos').doc(String(comboId)).get();
+                    if(cbDoc.exists) {
+                        const cbData = cbDoc.data();
                         document.getElementById('g-mandatory').innerText = cbData['Môn học - hoạt động GD bắt buộc'] || '';
                         document.getElementById('g-elective').innerText = cbData['Môn tự chọn'] || '';
                         document.getElementById('g-specialized').innerText = cbData['Các môn có chuyên đề'] || '';
@@ -391,30 +569,19 @@
                 }
             }
 
-            // Danh sách Học sinh
             const studentSnap = await db.collection('students').where('Lớp', '==', className).get();
-            let studentsList = [];
-            studentSnap.forEach(doc => { studentsList.push(doc.data()); });
-            
-            // Sắp xếp
-            studentsList.sort((a, b) => {
-                const sttA = parseInt(a['STT']);
-                const sttB = parseInt(b['STT']);
-                const valA = isNaN(sttA) ? 9999 : sttA;
-                const valB = isNaN(sttB) ? 9999 : sttB;
-                return valA - valB;
-            });
+            let arr = [];
+            studentSnap.forEach(d => arr.push(d.data()));
+            arr.sort((a, b) => (isNaN(parseInt(a['STT']))?9999:parseInt(a['STT'])) - (isNaN(parseInt(b['STT']))?9999:parseInt(b['STT'])));
 
             const tbody = document.getElementById('guest-student-list');
             tbody.innerHTML = '';
-            
-            if(studentsList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">Chưa có dữ liệu học sinh lớp này.</td></tr>';
-            } else {
-                studentsList.forEach(s => {
+            if(arr.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Chưa có dữ liệu</td></tr>';
+            else {
+                arr.forEach(s => {
                     tbody.innerHTML += `<tr>
                         <td>${s['STT'] || ''}</td>
-                        <td>${s['Họ và tên'] || ''}</td>
+                        <td class="fw-medium">${s['Họ và tên'] || ''}</td>
                         <td>${s['Ngày sinh'] || ''}</td>
                         <td>${s['Giới tính'] || ''}</td>
                         <td>${s['Dân tộc'] || ''}</td>
@@ -422,25 +589,33 @@
                 });
             }
             infoDiv.style.display = 'block';
-        } catch (error) {
-            alert("Đã xảy ra lỗi khi tải dữ liệu lớp: " + error.message);
-        }
+        } catch (e) { alert("Lỗi: " + e.message); }
     }
 
     // ================= CHỨC NĂNG HỌC SINH =================
+    function toggleFieldAccess(fieldId, isAllowed) {
+        const el = document.getElementById(fieldId);
+        if(isAllowed) {
+            el.removeAttribute('readonly');
+            el.classList.remove('readonly-field');
+        } else {
+            el.setAttribute('readonly', true);
+            el.classList.add('readonly-field');
+        }
+    }
+
     async function loginStudent() {
         const sid = document.getElementById('student-id').value.trim();
         if(!sid) { alert("Vui lòng nhập mã học sinh!"); return; }
 
         try {
             const doc = await db.collection('students').doc(sid).get();
-            
             if (doc.exists) {
                 showView('student-dashboard');
                 const data = doc.data();
                 
-                document.getElementById('s-id').value = sid;
-                document.getElementById('s-id-display').innerText = sid;
+                document.getElementById('s-old-id').value = sid;
+                document.getElementById('s-code').value = sid; // Mã (Mới)
                 document.getElementById('s-name').innerText = data['Họ và tên'] || 'Không rõ';
                 document.getElementById('s-class').innerText = data['Lớp'] || 'Không rõ';
                 
@@ -450,59 +625,67 @@
                 document.getElementById('s-notes').value = data['Ghi chú'] || '';
 
                 const permDoc = await db.collection('config').doc('permissions').get();
-                let canEditAny = false;
+                let canEdit = false;
                 
-                ['dob', 'gender', 'ethnicity', 'notes'].forEach(id => {
-                    document.getElementById(`s-${id}`).setAttribute('readonly', true);
-                    document.getElementById(`s-${id}`).style.backgroundColor = "#e9ecef";
-                });
+                ['s-code', 's-dob', 's-gender', 's-ethnicity', 's-notes'].forEach(id => toggleFieldAccess(id, false));
 
                 if(permDoc.exists) {
                     const p = permDoc.data();
-                    if(p.allowDob) { 
-                        document.getElementById('s-dob').removeAttribute('readonly'); 
-                        document.getElementById('s-dob').style.backgroundColor = "#fff";
-                        canEditAny = true; 
-                    }
-                    if(p.allowGender) { 
-                        document.getElementById('s-gender').removeAttribute('readonly'); 
-                        document.getElementById('s-gender').style.backgroundColor = "#fff";
-                        canEditAny = true; 
-                    }
-                    if(p.allowEthnicity) { 
-                        document.getElementById('s-ethnicity').removeAttribute('readonly'); 
-                        document.getElementById('s-ethnicity').style.backgroundColor = "#fff";
-                        canEditAny = true; 
-                    }
-                    if(p.allowNotes) { 
-                        document.getElementById('s-notes').removeAttribute('readonly');
-                        document.getElementById('s-notes').style.backgroundColor = "#fff"; 
-                        canEditAny = true; 
-                    }
+                    if(p.allowId) { toggleFieldAccess('s-code', true); canEdit = true; }
+                    if(p.allowDob) { toggleFieldAccess('s-dob', true); canEdit = true; }
+                    if(p.allowGender) { toggleFieldAccess('s-gender', true); canEdit = true; }
+                    if(p.allowEthnicity) { toggleFieldAccess('s-ethnicity', true); canEdit = true; }
+                    if(p.allowNotes) { toggleFieldAccess('s-notes', true); canEdit = true; }
                 }
                 
-                document.getElementById('btn-save-student').style.display = canEditAny ? 'block' : 'none';
-            } else {
-                alert('Không tìm thấy dữ liệu học sinh với mã này. Vui lòng kiểm tra lại!');
-            }
-        } catch (error) {
-            alert('Lỗi khi truy xuất dữ liệu: ' + error.message);
-        }
+                document.getElementById('btn-save-student').style.display = canEdit ? 'block' : 'none';
+            } else { alert('Không tìm thấy dữ liệu học sinh với mã này!'); }
+        } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
     async function updateStudentInfo() {
-        const sid = document.getElementById('s-id').value;
-        const updates = {};
+        const oldId = document.getElementById('s-old-id').value;
+        const newId = document.getElementById('s-code').value.trim();
         
+        if(!newId) { alert("Mã học sinh không được để trống!"); return; }
+
+        const updates = {};
         if(!document.getElementById('s-dob').readOnly) updates['Ngày sinh'] = document.getElementById('s-dob').value;
         if(!document.getElementById('s-gender').readOnly) updates['Giới tính'] = document.getElementById('s-gender').value;
         if(!document.getElementById('s-ethnicity').readOnly) updates['Dân tộc'] = document.getElementById('s-ethnicity').value;
         if(!document.getElementById('s-notes').readOnly) updates['Ghi chú'] = document.getElementById('s-notes').value;
 
         try {
-            await db.collection('students').doc(sid).set(updates, { merge: true });
-            alert('Đã cập nhật thông tin thành công!');
+            toggleLoading(true, "Đang lưu thay đổi...");
+            
+            // Nếu học sinh ĐỔI MÃ
+            if (newId !== oldId && !document.getElementById('s-code').readOnly) {
+                // Kiểm tra mã mới đã tồn tại chưa
+                const checkExist = await db.collection('students').doc(newId).get();
+                if(checkExist.exists) {
+                    toggleLoading(false);
+                    alert("Mã này đã được sử dụng bởi học sinh khác. Vui lòng chọn mã khác!");
+                    return;
+                }
+
+                // Copy dữ liệu cũ + cập nhật trường mới + cập nhật Mã
+                const oldDoc = await db.collection('students').doc(oldId).get();
+                const newData = { ...oldDoc.data(), ...updates, 'Mã': newId };
+                
+                await db.collection('students').doc(newId).set(newData); // Tạo mới
+                await db.collection('students').doc(oldId).delete();     // Xóa cũ
+                
+                document.getElementById('s-old-id').value = newId;       // Cập nhật state UI
+                toggleLoading(false);
+                alert("Đã cập nhật thông tin VÀ ĐỔI MÃ thành công. Lần đăng nhập sau hãy dùng mã mới nhé!");
+            } else {
+                // Chỉ cập nhật thông tin bình thường
+                await db.collection('students').doc(oldId).set(updates, { merge: true });
+                toggleLoading(false);
+                alert('Đã cập nhật thông tin thành công!');
+            }
         } catch (error) {
+            toggleLoading(false);
             alert('Cập nhật thất bại: ' + error.message);
         }
     }
