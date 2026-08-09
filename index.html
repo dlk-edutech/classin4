@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Thông Tin Học Sinh - THPT Số 1 Trần Phú</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SheetJS cho Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Firebase V8 cho Cloud Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <style>
+        body { background-color: #f8f9fa; }
+        .view-section { display: none; }
+        .active-view { display: block; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4 mb-5">
+    <h2 class="text-center text-primary mb-4">Cổng Thông Tin Học Sinh</h2>
+    
+    <!-- MENU CHỌN QUYỀN -->
+    <div id="role-selector" class="text-center mb-4 active-view view-section">
+        <button class="btn btn-outline-success m-2" onclick="showView('guest-view'); loadGuestData()">Khách Truy Cập</button>
+        <button class="btn btn-outline-info m-2" onclick="showView('student-login')">Học Sinh</button>
+        <button class="btn btn-outline-danger m-2" onclick="showView('admin-login')">Quản Trị Viên</button>
+    </div>
+
+    <!-- KHÁCH: XEM THÔNG TIN -->
+    <div id="guest-view" class="view-section">
+        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Quay lại trang chủ</button>
+        <div class="card p-4">
+            <h4>Tra cứu thông tin lớp</h4>
+            <select id="guest-class-select" class="form-select mb-3" onchange="fetchClassDetails()">
+                <option value="">-- Chọn Lớp --</option>
+            </select>
+            
+            <div id="guest-class-info" style="display:none;">
+                <p><strong>Giáo viên chủ nhiệm:</strong> <span id="g-teacher" class="text-primary"></span></p>
+                <p><strong>Tổ hợp môn:</strong> <span id="g-combo" class="text-danger fw-bold"></span></p>
+                <ul>
+                    <li><strong>Môn học - HĐGD bắt buộc:</strong> <span id="g-mandatory"></span></li>
+                    <li><strong>Môn tự chọn:</strong> <span id="g-elective"></span></li>
+                    <li><strong>Các môn có chuyên đề:</strong> <span id="g-specialized"></span></li>
+                </ul>
+                
+                <h5 class="mt-4">Danh sách học sinh</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th></tr>
+                        </thead>
+                        <tbody id="guest-student-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN: ĐĂNG NHẬP -->
+    <div id="admin-login" class="view-section">
+        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Quay lại trang chủ</button>
+        <div class="card p-4 mx-auto" style="max-width: 400px;">
+            <h4 class="text-center">Đăng nhập Admin</h4>
+            <input type="password" id="admin-pw" class="form-control mb-3" placeholder="Nhập mã đăng nhập">
+            <button class="btn btn-danger w-100" onclick="loginAdmin()">Đăng Nhập</button>
+        </div>
+    </div>
+
+    <!-- ADMIN: BẢNG ĐIỀU KHIỂN -->
+    <div id="admin-dashboard" class="view-section">
+        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Đăng xuất Admin</button>
+        
+        <div class="card p-4 mb-4 border-primary">
+            <h4 class="text-primary">Nạp Dữ Liệu (Từ file Excel)</h4>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="fw-bold">1. Thông tin Lớp</label>
+                    <input type="file" class="form-control mb-1" onchange="importExcel(event, 'classes')">
+                    <small class="text-muted">Cột yêu cầu: Lớp, Mã TH môn, Giáo viên chủ nhiệm</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="fw-bold">2. Tổ hợp môn học</label>
+                    <input type="file" class="form-control mb-1" onchange="importExcel(event, 'combos')">
+                    <small class="text-muted">Cột yêu cầu: Mã TH môn, Môn học - hoạt động GD bắt buộc, Môn tự chọn, Các môn có chuyên đề</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="fw-bold">3. Danh sách học sinh</label>
+                    <input type="file" class="form-control mb-1" onchange="importExcel(event, 'students')">
+                    <small class="text-muted">Cột yêu cầu: Mã, Họ và tên, Lớp, Ngày sinh, Giới tính, Dân tộc, Ghi chú</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4 border-warning">
+            <h4 class="text-warning">Cài đặt quyền chỉnh sửa cho Học sinh</h4>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-dob"><label>Cho phép sửa Ngày sinh</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-gender"><label>Cho phép sửa Giới tính</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-ethnicity"><label>Cho phép sửa Dân tộc</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="perm-notes"><label>Cho phép sửa Ghi chú</label></div>
+            <button class="btn btn-warning mt-3" onclick="savePermissions()">Lưu cài đặt quyền</button>
+            <hr>
+            <button class="btn btn-outline-danger" onclick="changeAdminPw()">Đổi mã đăng nhập Admin</button>
+        </div>
+    </div>
+
+    <!-- HỌC SINH: ĐĂNG NHẬP -->
+    <div id="student-login" class="view-section">
+        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Quay lại trang chủ</button>
+        <div class="card p-4 mx-auto" style="max-width: 400px;">
+            <h4 class="text-center text-info">Học Sinh Đăng Nhập</h4>
+            <input type="text" id="student-id" class="form-control mb-3" placeholder="Nhập Mã học sinh của bạn">
+            <button class="btn btn-info w-100 text-white" onclick="loginStudent()">Truy Cập</button>
+        </div>
+    </div>
+
+    <!-- HỌC SINH: CHỈNH SỬA THÔNG TIN -->
+    <div id="student-dashboard" class="view-section">
+        <button class="btn btn-secondary mb-3" onclick="showView('role-selector')">Đăng xuất</button>
+        <div class="card p-4 mx-auto border-info" style="max-width: 600px;">
+            <h4 class="text-center text-info mb-4">Thông Tin Cá Nhân</h4>
+            <input type="hidden" id="s-id">
+            
+            <div class="alert alert-light border">
+                <div class="mb-2"><strong>Mã Học Sinh:</strong> <span id="s-id-display" class="text-primary fw-bold"></span></div>
+                <div class="mb-2"><strong>Họ và tên:</strong> <span id="s-name" class="fw-bold"></span></div>
+                <div class="mb-2"><strong>Lớp:</strong> <span id="s-class"></span></div>
+            </div>
+            
+            <p class="text-muted small">* Các trường thông tin có màu xám là dữ liệu đã bị khóa bởi Nhà trường.</p>
+
+            <div class="mb-3">
+                <label class="fw-bold">Ngày sinh:</label>
+                <input type="text" id="s-dob" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Giới tính:</label>
+                <input type="text" id="s-gender" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Dân tộc:</label>
+                <input type="text" id="s-ethnicity" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Ghi chú:</label>
+                <input type="text" id="s-notes" class="form-control" readonly>
+            </div>
+            <button class="btn btn-success w-100 mt-3" id="btn-save-student" onclick="updateStudentInfo()" style="display:none;">Lưu Thông Tin Cập Nhật</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Cấu hình Firebase của trường THPT Số 1 Trần Phú
+    const firebaseConfig = {
+        apiKey: "AIzaSyBFsuQpiwLkGm2yQ-GiBPFpdsZr-wWABxk",
+        authDomain: "class-in4.firebaseapp.com",
+        projectId: "class-in4",
+        storageBucket: "class-in4.firebasestorage.app",
+        messagingSenderId: "626297943069",
+        appId: "1:626297943069:web:25233067e158c8663fc2f4"
+    };
+    
+    // Khởi tạo Firebase Firestore
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ================= CHUYỂN ĐỔI GIAO DIỆN =================
+    function showView(viewId) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+        document.getElementById(viewId).classList.add('active-view');
+    }
+
+    // ================= CHỨC NĂNG ADMIN =================
+    async function loginAdmin() {
+        const pw = document.getElementById('admin-pw').value;
+        try {
+            const doc = await db.collection('config').doc('admin').get();
+            const realPw = doc.exists ? doc.data().password : "11043006"; // Mặc định 11043006 nếu chưa có
+            
+            if (pw === realPw) {
+                showView('admin-dashboard');
+                loadPermissions();
+                document.getElementById('admin-pw').value = '';
+            } else {
+                alert('Mã đăng nhập không chính xác!');
+            }
+        } catch (error) {
+            alert('Lỗi kết nối CSDL: ' + error.message);
+        }
+    }
+
+    async function changeAdminPw() {
+        const newPw = prompt("Nhập mã đăng nhập Admin mới:");
+        if(newPw && newPw.trim() !== "") {
+            await db.collection('config').doc('admin').set({ password: newPw }, { merge: true });
+            alert('Đổi mã đăng nhập thành công!');
+        }
+    }
+
+    async function importExcel(event, collectionName) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                
+                // Dùng Promise.all để ghi dữ liệu hàng loạt vào Firestore
+                const promises = jsonData.map(item => {
+                    let docId;
+                    if(collectionName === 'classes' && item['Lớp']) docId = String(item['Lớp']);
+                    if(collectionName === 'combos' && item['Mã TH môn']) docId = String(item['Mã TH môn']);
+                    if(collectionName === 'students' && item['Mã']) docId = String(item['Mã']);
+                    
+                    if(docId) {
+                        return db.collection(collectionName).doc(docId).set(item);
+                    }
+                });
+                
+                await Promise.all(promises);
+                alert('Nạp dữ liệu thành công vào cơ sở dữ liệu!');
+            } catch (error) {
+                alert('Lỗi khi nạp dữ liệu: ' + error.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    async function loadPermissions() {
+        const doc = await db.collection('config').doc('permissions').get();
+        if(doc.exists) {
+            const d = doc.data();
+            document.getElementById('perm-dob').checked = d.allowDob || false;
+            document.getElementById('perm-gender').checked = d.allowGender || false;
+            document.getElementById('perm-ethnicity').checked = d.allowEthnicity || false;
+            document.getElementById('perm-notes').checked = d.allowNotes || false;
+        }
+    }
+
+    async function savePermissions() {
+        await db.collection('config').doc('permissions').set({
+            allowDob: document.getElementById('perm-dob').checked,
+            allowGender: document.getElementById('perm-gender').checked,
+            allowEthnicity: document.getElementById('perm-ethnicity').checked,
+            allowNotes: document.getElementById('perm-notes').checked
+        }, { merge: true });
+        alert('Đã cập nhật cấu hình khóa/mở khóa thông tin học sinh!');
+    }
+
+    // ================= CHỨC NĂNG KHÁCH (GUEST) =================
+    async function loadGuestData() {
+        const select = document.getElementById('guest-class-select');
+        select.innerHTML = '<option value="">-- Đang tải danh sách lớp... --</option>';
+        try {
+            const snapshot = await db.collection('classes').get();
+            select.innerHTML = '<option value="">-- Chọn Lớp --</option>';
+            snapshot.forEach(doc => {
+                select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
+            });
+        } catch (error) {
+            select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+        }
+    }
+
+    async function fetchClassDetails() {
+        const className = document.getElementById('guest-class-select').value;
+        const infoDiv = document.getElementById('guest-class-info');
+        
+        if(!className) { 
+            infoDiv.style.display = 'none'; 
+            return; 
+        }
+        
+        try {
+            // Lấy thông tin lớp
+            const classDoc = await db.collection('classes').doc(className).get();
+            if(classDoc.exists) {
+                const cData = classDoc.data();
+                document.getElementById('g-teacher').innerText = cData['Giáo viên chủ nhiệm'] || 'Chưa cập nhật';
+                const comboId = cData['Mã TH môn'] || '';
+                document.getElementById('g-combo').innerText = comboId;
+                
+                // Lấy thông tin tổ hợp
+                if(comboId) {
+                    const comboDoc = await db.collection('combos').doc(String(comboId)).get();
+                    if(comboDoc.exists) {
+                        const cbData = comboDoc.data();
+                        document.getElementById('g-mandatory').innerText = cbData['Môn học - hoạt động GD bắt buộc'] || '';
+                        document.getElementById('g-elective').innerText = cbData['Môn tự chọn'] || '';
+                        document.getElementById('g-specialized').innerText = cbData['Các môn có chuyên đề'] || '';
+                    }
+                }
+            }
+
+            // Lấy danh sách Học sinh của lớp đó
+            const studentSnap = await db.collection('students').where('Lớp', '==', className).get();
+            const tbody = document.getElementById('guest-student-list');
+            tbody.innerHTML = '';
+            
+            if(studentSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Chưa có dữ liệu học sinh lớp này.</td></tr>';
+            } else {
+                studentSnap.forEach(doc => {
+                    const s = doc.data();
+                    tbody.innerHTML += `<tr>
+                        <td>${s['Họ và tên'] || ''}</td>
+                        <td>${s['Ngày sinh'] || ''}</td>
+                        <td>${s['Giới tính'] || ''}</td>
+                        <td>${s['Dân tộc'] || ''}</td>
+                    </tr>`;
+                });
+            }
+            infoDiv.style.display = 'block';
+        } catch (error) {
+            alert("Đã xảy ra lỗi khi tải dữ liệu lớp.");
+        }
+    }
+
+    // ================= CHỨC NĂNG HỌC SINH =================
+    async function loginStudent() {
+        const sid = document.getElementById('student-id').value.trim();
+        if(!sid) { alert("Vui lòng nhập mã học sinh!"); return; }
+
+        try {
+            const doc = await db.collection('students').doc(sid).get();
+            
+            if (doc.exists) {
+                showView('student-dashboard');
+                const data = doc.data();
+                
+                document.getElementById('s-id').value = sid;
+                document.getElementById('s-id-display').innerText = sid;
+                document.getElementById('s-name').innerText = data['Họ và tên'] || 'Không rõ';
+                document.getElementById('s-class').innerText = data['Lớp'] || 'Không rõ';
+                
+                document.getElementById('s-dob').value = data['Ngày sinh'] || '';
+                document.getElementById('s-gender').value = data['Giới tính'] || '';
+                document.getElementById('s-ethnicity').value = data['Dân tộc'] || '';
+                document.getElementById('s-notes').value = data['Ghi chú'] || '';
+
+                // Kiểm tra quyền sửa từ config/permissions
+                const permDoc = await db.collection('config').doc('permissions').get();
+                let canEditAny = false;
+                
+                // Mặc định khóa (readonly = true)
+                ['dob', 'gender', 'ethnicity', 'notes'].forEach(id => {
+                    document.getElementById(`s-${id}`).setAttribute('readonly', true);
+                    document.getElementById(`s-${id}`).style.backgroundColor = "#e9ecef"; // Màu xám
+                });
+
+                if(permDoc.exists) {
+                    const p = permDoc.data();
+                    if(p.allowDob) { 
+                        document.getElementById('s-dob').removeAttribute('readonly'); 
+                        document.getElementById('s-dob').style.backgroundColor = "#fff";
+                        canEditAny = true; 
+                    }
+                    if(p.allowGender) { 
+                        document.getElementById('s-gender').removeAttribute('readonly'); 
+                        document.getElementById('s-gender').style.backgroundColor = "#fff";
+                        canEditAny = true; 
+                    }
+                    if(p.allowEthnicity) { 
+                        document.getElementById('s-ethnicity').removeAttribute('readonly'); 
+                        document.getElementById('s-ethnicity').style.backgroundColor = "#fff";
+                        canEditAny = true; 
+                    }
+                    if(p.allowNotes) { 
+                        document.getElementById('s-notes').removeAttribute('readonly');
+                        document.getElementById('s-notes').style.backgroundColor = "#fff"; 
+                        canEditAny = true; 
+                    }
+                }
+                
+                document.getElementById('btn-save-student').style.display = canEditAny ? 'block' : 'none';
+            } else {
+                alert('Không tìm thấy dữ liệu học sinh với mã này. Vui lòng kiểm tra lại!');
+            }
+        } catch (error) {
+            alert('Lỗi khi truy xuất dữ liệu: ' + error.message);
+        }
+    }
+
+    async function updateStudentInfo() {
+        const sid = document.getElementById('s-id').value;
+        const updates = {};
+        
+        if(!document.getElementById('s-dob').readOnly) updates['Ngày sinh'] = document.getElementById('s-dob').value;
+        if(!document.getElementById('s-gender').readOnly) updates['Giới tính'] = document.getElementById('s-gender').value;
+        if(!document.getElementById('s-ethnicity').readOnly) updates['Dân tộc'] = document.getElementById('s-ethnicity').value;
+        if(!document.getElementById('s-notes').readOnly) updates['Ghi chú'] = document.getElementById('s-notes').value;
+
+        try {
+            // Dùng { merge: true } để chỉ cập nhật các trường được phép sửa, không làm mất các trường khác
+            await db.collection('students').doc(sid).set(updates, { merge: true });
+            alert('Đã cập nhật thông tin thành công!');
+        } catch (error) {
+            alert('Cập nhật thất bại: ' + error.message);
+        }
+    }
+</script>
+</body>
+</html>
