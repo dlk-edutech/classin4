@@ -18,9 +18,23 @@
         .view-section { display: none; }
         .active-view { display: block; }
         .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Màn hình loading (chờ upload) */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9); z-index: 9999;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body>
+
+<!-- MÀN HÌNH CHỜ (LOADING) -->
+<div id="loading-overlay">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h4 class="mt-3 text-primary" id="loading-text">Đang xử lý dữ liệu...</h4>
+    <p class="text-muted">Vui lòng không đóng trình duyệt!</p>
+</div>
 
 <div class="container mt-4 mb-5">
     <h2 class="text-center text-primary mb-4">Cổng Thông Tin Học Sinh</h2>
@@ -54,7 +68,7 @@
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
                         <thead class="table-light">
-                            <tr><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th></tr>
+                            <tr><th>STT</th><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th></tr>
                         </thead>
                         <tbody id="guest-student-list"></tbody>
                     </table>
@@ -79,21 +93,27 @@
         
         <div class="card p-4 mb-4 border-primary">
             <h4 class="text-primary">Nạp Dữ Liệu (Từ file Excel)</h4>
+            <div class="alert alert-warning py-2 mb-3">
+                <small><b>Lưu ý:</b> Hệ thống sẽ tự động <b>XÓA SẠCH</b> dữ liệu cũ trước khi nạp dữ liệu mới cho từng phần tương ứng.</small>
+            </div>
             <div class="row">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-4 mb-3 border-end">
                     <label class="fw-bold">1. Thông tin Lớp</label>
-                    <input type="file" class="form-control mb-1" onchange="importExcel(event, 'classes')">
-                    <small class="text-muted">Cột yêu cầu: Lớp, Mã TH môn, Giáo viên chủ nhiệm</small>
+                    <input type="file" id="file-classes" class="form-control mb-2" accept=".xlsx, .xls">
+                    <button class="btn btn-sm btn-primary w-100" onclick="processUpload('file-classes', 'classes')">Bắt đầu tải dữ liệu</button>
+                    <small class="text-muted d-block mt-2">Cột yêu cầu: Lớp, Mã TH môn, Giáo viên chủ nhiệm</small>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-4 mb-3 border-end">
                     <label class="fw-bold">2. Tổ hợp môn học</label>
-                    <input type="file" class="form-control mb-1" onchange="importExcel(event, 'combos')">
-                    <small class="text-muted">Cột yêu cầu: Mã TH môn, Môn học - hoạt động GD bắt buộc, Môn tự chọn, Các môn có chuyên đề</small>
+                    <input type="file" id="file-combos" class="form-control mb-2" accept=".xlsx, .xls">
+                    <button class="btn btn-sm btn-primary w-100" onclick="processUpload('file-combos', 'combos')">Bắt đầu tải dữ liệu</button>
+                    <small class="text-muted d-block mt-2">Cột yêu cầu: Mã TH môn, Môn học - hoạt động GD bắt buộc, Môn tự chọn, Các môn có chuyên đề</small>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="fw-bold">3. Danh sách học sinh</label>
-                    <input type="file" class="form-control mb-1" onchange="importExcel(event, 'students')">
-                    <small class="text-muted">Cột yêu cầu: Mã, Họ và tên, Lớp, Ngày sinh, Giới tính, Dân tộc, Ghi chú</small>
+                    <input type="file" id="file-students" class="form-control mb-2" accept=".xlsx, .xls">
+                    <button class="btn btn-sm btn-primary w-100" onclick="processUpload('file-students', 'students')">Bắt đầu tải dữ liệu</button>
+                    <small class="text-muted d-block mt-2">Cột yêu cầu: <b>STT</b>, Mã, Họ và tên, Lớp, Ngày sinh, Giới tính, Dân tộc, Ghi chú</small>
                 </div>
             </div>
         </div>
@@ -157,7 +177,7 @@
 </div>
 
 <script>
-    // 1. Cấu hình Firebase của trường THPT Số 1 Trần Phú
+    // 1. Cấu hình Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyBFsuQpiwLkGm2yQ-GiBPFpdsZr-wWABxk",
         authDomain: "class-in4.firebaseapp.com",
@@ -167,7 +187,6 @@
         appId: "1:626297943069:web:25233067e158c8663fc2f4"
     };
     
-    // Khởi tạo Firebase Firestore
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -177,12 +196,17 @@
         document.getElementById(viewId).classList.add('active-view');
     }
 
+    function toggleLoading(show, text = 'Đang xử lý dữ liệu...') {
+        document.getElementById('loading-text').innerText = text;
+        document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+    }
+
     // ================= CHỨC NĂNG ADMIN =================
     async function loginAdmin() {
         const pw = document.getElementById('admin-pw').value;
         try {
             const doc = await db.collection('config').doc('admin').get();
-            const realPw = doc.exists ? doc.data().password : "11043006"; // Mặc định 11043006 nếu chưa có
+            const realPw = doc.exists ? doc.data().password : "11043006"; 
             
             if (pw === realPw) {
                 showView('admin-dashboard');
@@ -204,37 +228,97 @@
         }
     }
 
-    async function importExcel(event, collectionName) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const sheetName = workbook.SheetNames[0];
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                
-                // Dùng Promise.all để ghi dữ liệu hàng loạt vào Firestore
-                const promises = jsonData.map(item => {
-                    let docId;
-                    if(collectionName === 'classes' && item['Lớp']) docId = String(item['Lớp']);
-                    if(collectionName === 'combos' && item['Mã TH môn']) docId = String(item['Mã TH môn']);
-                    if(collectionName === 'students' && item['Mã']) docId = String(item['Mã']);
-                    
-                    if(docId) {
-                        return db.collection(collectionName).doc(docId).set(item);
-                    }
-                });
-                
-                await Promise.all(promises);
-                alert('Nạp dữ liệu thành công vào cơ sở dữ liệu!');
-            } catch (error) {
-                alert('Lỗi khi nạp dữ liệu: ' + error.message);
+    // Đọc file Excel trả về JSON (Promise)
+    function readExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    resolve(jsonData);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // Xóa toàn bộ dữ liệu trong 1 collection (Xóa Batch để tránh quá tải)
+    async function clearCollection(collectionName) {
+        const snapshot = await db.collection(collectionName).get();
+        if(snapshot.empty) return;
+
+        const batches = [];
+        let batch = db.batch();
+        let count = 0;
+
+        snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+            count++;
+            if (count === 500) { // Giới hạn batch của Firestore là 500
+                batches.push(batch.commit());
+                batch = db.batch();
+                count = 0;
             }
-        };
-        reader.readAsArrayBuffer(file);
+        });
+        if (count > 0) batches.push(batch.commit());
+        await Promise.all(batches);
+    }
+
+    // Hàm tổng xử lý Upload
+    async function processUpload(inputId, collectionName) {
+        const fileInput = document.getElementById(inputId);
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Vui lòng chọn file Excel trước khi bấm tải dữ liệu!");
+            return;
+        }
+
+        try {
+            toggleLoading(true, 'Đang đọc file Excel...');
+            const jsonData = await readExcelFile(file);
+            if (jsonData.length === 0) throw new Error("File Excel không có dữ liệu!");
+
+            toggleLoading(true, `Đang xóa dữ liệu cũ của danh mục (${collectionName})...`);
+            await clearCollection(collectionName);
+
+            toggleLoading(true, `Đang ghi dữ liệu mới (${jsonData.length} dòng)...`);
+            const batches = [];
+            let batch = db.batch();
+            let count = 0;
+
+            jsonData.forEach(item => {
+                let docId;
+                if(collectionName === 'classes' && item['Lớp']) docId = String(item['Lớp']);
+                if(collectionName === 'combos' && item['Mã TH môn']) docId = String(item['Mã TH môn']);
+                if(collectionName === 'students' && item['Mã']) docId = String(item['Mã']);
+                
+                if(docId) {
+                    const docRef = db.collection(collectionName).doc(docId);
+                    batch.set(docRef, item);
+                    count++;
+                    if (count === 500) {
+                        batches.push(batch.commit());
+                        batch = db.batch();
+                        count = 0;
+                    }
+                }
+            });
+            if (count > 0) batches.push(batch.commit());
+            await Promise.all(batches);
+
+            toggleLoading(false);
+            alert(`✅ Nạp dữ liệu THÀNH CÔNG (${jsonData.length} bản ghi) vào hệ thống!`);
+            fileInput.value = ''; // Reset input
+        } catch (error) {
+            toggleLoading(false);
+            alert('Lỗi quá trình nạp dữ liệu: ' + error.message);
+        }
     }
 
     async function loadPermissions() {
@@ -277,13 +361,10 @@
         const className = document.getElementById('guest-class-select').value;
         const infoDiv = document.getElementById('guest-class-info');
         
-        if(!className) { 
-            infoDiv.style.display = 'none'; 
-            return; 
-        }
+        if(!className) { infoDiv.style.display = 'none'; return; }
         
         try {
-            // Lấy thông tin lớp
+            // Thông tin lớp
             const classDoc = await db.collection('classes').doc(className).get();
             if(classDoc.exists) {
                 const cData = classDoc.data();
@@ -291,7 +372,6 @@
                 const comboId = cData['Mã TH môn'] || '';
                 document.getElementById('g-combo').innerText = comboId;
                 
-                // Lấy thông tin tổ hợp
                 if(comboId) {
                     const comboDoc = await db.collection('combos').doc(String(comboId)).get();
                     if(comboDoc.exists) {
@@ -303,17 +383,30 @@
                 }
             }
 
-            // Lấy danh sách Học sinh của lớp đó
+            // Danh sách Học sinh
             const studentSnap = await db.collection('students').where('Lớp', '==', className).get();
+            let studentsList = [];
+            studentSnap.forEach(doc => { studentsList.push(doc.data()); });
+            
+            // SẮP XẾP HỌC SINH THEO SỐ THỨ TỰ (STT)
+            studentsList.sort((a, b) => {
+                const sttA = parseInt(a['STT']);
+                const sttB = parseInt(b['STT']);
+                // Nếu STT trống hoặc không phải số, đẩy xuống cuối
+                const valA = isNaN(sttA) ? 9999 : sttA;
+                const valB = isNaN(sttB) ? 9999 : sttB;
+                return valA - valB;
+            });
+
             const tbody = document.getElementById('guest-student-list');
             tbody.innerHTML = '';
             
-            if(studentSnap.empty) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Chưa có dữ liệu học sinh lớp này.</td></tr>';
+            if(studentsList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">Chưa có dữ liệu học sinh lớp này.</td></tr>';
             } else {
-                studentSnap.forEach(doc => {
-                    const s = doc.data();
+                studentsList.forEach(s => {
                     tbody.innerHTML += `<tr>
+                        <td>${s['STT'] || ''}</td>
                         <td>${s['Họ và tên'] || ''}</td>
                         <td>${s['Ngày sinh'] || ''}</td>
                         <td>${s['Giới tính'] || ''}</td>
@@ -323,7 +416,7 @@
             }
             infoDiv.style.display = 'block';
         } catch (error) {
-            alert("Đã xảy ra lỗi khi tải dữ liệu lớp.");
+            alert("Đã xảy ra lỗi khi tải dữ liệu lớp: " + error.message);
         }
     }
 
@@ -349,14 +442,12 @@
                 document.getElementById('s-ethnicity').value = data['Dân tộc'] || '';
                 document.getElementById('s-notes').value = data['Ghi chú'] || '';
 
-                // Kiểm tra quyền sửa từ config/permissions
                 const permDoc = await db.collection('config').doc('permissions').get();
                 let canEditAny = false;
                 
-                // Mặc định khóa (readonly = true)
                 ['dob', 'gender', 'ethnicity', 'notes'].forEach(id => {
                     document.getElementById(`s-${id}`).setAttribute('readonly', true);
-                    document.getElementById(`s-${id}`).style.backgroundColor = "#e9ecef"; // Màu xám
+                    document.getElementById(`s-${id}`).style.backgroundColor = "#e9ecef";
                 });
 
                 if(permDoc.exists) {
@@ -402,7 +493,6 @@
         if(!document.getElementById('s-notes').readOnly) updates['Ghi chú'] = document.getElementById('s-notes').value;
 
         try {
-            // Dùng { merge: true } để chỉ cập nhật các trường được phép sửa, không làm mất các trường khác
             await db.collection('students').doc(sid).set(updates, { merge: true });
             alert('Đã cập nhật thông tin thành công!');
         } catch (error) {
