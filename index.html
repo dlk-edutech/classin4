@@ -107,7 +107,7 @@
                 <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('guest-view'); loadGuestData()">
                     <h3 class="mb-3">🔍</h3>
                     <h5 class="fw-bold text-success">Khách Truy Cập</h5>
-                    <p class="text-muted small mb-0">Tra cứu thông tin lớp học, tổ hợp môn và danh sách học sinh.</p>
+                    <p class="text-muted small mb-0">Tra cứu thông tin lớp học, tổ hợp môn và tìm kiếm học sinh.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
@@ -182,7 +182,7 @@
             <div class="card-body p-4">
                 <div class="input-group mb-4">
                     <span class="input-group-text bg-white border-end-0">🔍</span>
-                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 ps-0" placeholder="Nhập tên học sinh (có dấu, không dấu, hoặc viết tắt...)" oninput="searchStudent()">
+                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 ps-0" placeholder="Nhập tên học sinh (VD: Y ČHÊNG, YCH, nguyen van a, nva...)" oninput="searchStudent()">
                 </div>
                 
                 <div class="table-responsive">
@@ -373,7 +373,7 @@
 </div>
 
 <!-- THÔNG TIN BẢN QUYỀN -->
-<footer class="text-center py-3 bg-white border-top">
+<footer class="text-center py-3 bg-white border-top mt-auto">
     <div class="container">
         <small class="text-muted"><strong>Bản quyền:</strong> Dlk Edu Tech - Phát triển bởi tranhongdan@tranphudlk.edu.vn</small>
     </div>
@@ -616,22 +616,15 @@
         switchGuestTab('class'); // Mặc định mở tab tra cứu lớp
     }
 
-    // Tiện ích loại bỏ dấu tiếng Việt để tìm kiếm
-    function removeVietnameseTones(str) {
-        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
-        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
-        str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
-        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o"); 
-        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u"); 
-        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y"); 
-        str = str.replace(/đ/g,"d");
-        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
-        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
-        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
-        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
-        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
-        str = str.replace(/Đ/g, "D");
+    // HÀM CHUẨN HÓA KÝ TỰ (Hỗ trợ tốt tiếng dân tộc thiểu số như Ê Đê)
+    function normalizeString(str) {
+        if (!str) return '';
+        // 1. Sử dụng Unicode Normalization Form Canonical Decomposition (NFD)
+        // Nó sẽ tách mọi ký tự có dấu (kể cả Č, Ê, Ơ...) thành ký tự gốc + ký hiệu dấu
+        str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        // 2. Chuyển đổi thủ công chữ Đ (vì NFD không tách được Đ)
+        str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        // 3. Chuyển về chữ thường và xóa khoảng trắng thừa
         return str.toLowerCase().trim();
     }
 
@@ -645,20 +638,29 @@
         }
     }
 
-    // Tìm kiếm HS
+    // Tìm kiếm HS nâng cao
     function searchStudent() {
-        const query = removeVietnameseTones(document.getElementById('guest-search-input').value);
+        const rawQuery = document.getElementById('guest-search-input').value;
+        const queryNorm = normalizeString(rawQuery);           // VD: "ych" hoặc "y cheng hdok"
+        const queryNoSpace = queryNorm.replace(/\s+/g, '');    // Loại bỏ toàn bộ dấu cách để so sánh chuỗi viết tắt
+        
         const tbody = document.getElementById('guest-search-results');
         tbody.innerHTML = '';
         
-        if (!query) {
+        if (!queryNorm) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>';
             return;
         }
 
         const results = allStudentsCache.filter(s => {
-            const name = removeVietnameseTones(s['Họ và tên'] || '');
-            return name.includes(query);
+            const nameNorm = normalizeString(s['Họ và tên'] || '');
+            
+            // Tạo chuỗi viết tắt (Lấy chữ cái đầu của mỗi từ)
+            // VD: "y cheng hdok" -> "ych"
+            const initials = nameNorm.split(/\s+/).map(word => word.charAt(0)).join('');
+            
+            // So khớp: Trùng tên một phần HOẶC trùng các ký tự viết tắt đầu
+            return nameNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
         });
 
         if (results.length === 0) {
