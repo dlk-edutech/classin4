@@ -225,7 +225,7 @@
         </div>
 
         <div class="card">
-            <div class="card-header text-primary">Cập Nhật Dữ Liệu (Excel)</div>
+            <div class="card-header text-primary">Cập Nhật Dữ Lu (Excel)</div>
             <div class="card-body p-4">
                 <div class="alert alert-info py-2 small mb-4">
                     <strong>Lưu ý quan trọng:</strong> Khi nạp file mới, dữ liệu cũ của danh mục đó sẽ bị xóa để thay thế bằng dữ liệu mới nhất.
@@ -341,7 +341,8 @@
                     </div>
                 </div>
                 
-                <p class="text-muted small mb-3 fst-italic">Các trường có nền xám đã được nhà trường bảo mật. Vui lòng liên hệ GVCN nếu có sai sót.</p>
+                <!-- KHU VỰC THÔNG BÁO QUYỀN CHỈNH SỬA CHO HỌC SINH -->
+                <div id="s-edit-notice" class="alert py-2 mb-4 small" role="alert" style="display: none;"></div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -397,7 +398,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Biến toàn cục lưu danh sách HS để tìm kiếm nhanh
     let allStudentsCache = [];
 
     // ================= CHUYỂN ĐỔI GIAO DIỆN =================
@@ -602,7 +602,6 @@
 
     async function loadGuestData() {
         allStudentsCache = [];
-        
         const select = document.getElementById('guest-class-select');
         select.innerHTML = '<option value="">-- Đang tải dữ liệu... --</option>';
         try {
@@ -612,7 +611,6 @@
                 select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
             });
         } catch (e) { select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>'; }
-        
         switchGuestTab('class'); 
     }
 
@@ -782,16 +780,28 @@
 
                 const permDoc = await db.collection('config').doc('permissions').get();
                 let canEdit = false;
+                let allowedFieldsList = [];
                 
                 ['s-code', 's-dob', 's-gender', 's-ethnicity', 's-opinion'].forEach(id => toggleFieldAccess(id, false));
 
                 if(permDoc.exists) {
                     const p = permDoc.data();
-                    if(p.allowId) { toggleFieldAccess('s-code', true); canEdit = true; }
-                    if(p.allowDob) { toggleFieldAccess('s-dob', true); canEdit = true; }
-                    if(p.allowGender) { toggleFieldAccess('s-gender', true); canEdit = true; }
-                    if(p.allowEthnicity) { toggleFieldAccess('s-ethnicity', true); canEdit = true; }
-                    if(p.allowOpinion) { toggleFieldAccess('s-opinion', true); canEdit = true; }
+                    if(p.allowId) { toggleFieldAccess('s-code', true); canEdit = true; allowedFieldsList.push('Mã HS'); }
+                    if(p.allowDob) { toggleFieldAccess('s-dob', true); canEdit = true; allowedFieldsList.push('Ngày sinh'); }
+                    if(p.allowGender) { toggleFieldAccess('s-gender', true); canEdit = true; allowedFieldsList.push('Giới tính'); }
+                    if(p.allowEthnicity) { toggleFieldAccess('s-ethnicity', true); canEdit = true; allowedFieldsList.push('Dân tộc'); }
+                    if(p.allowOpinion) { toggleFieldAccess('s-opinion', true); canEdit = true; allowedFieldsList.push('Ý kiến'); }
+                }
+
+                // Cập nhật thông báo trực quan về quyền chỉnh sửa
+                const noticeEl = document.getElementById('s-edit-notice');
+                noticeEl.style.display = 'block';
+                if(canEdit) {
+                    noticeEl.className = 'alert alert-info py-2 mb-4 small';
+                    noticeEl.innerHTML = `💡 <strong>Thông báo:</strong> Em đang được phép cập nhật các thông tin: <span class="fw-bold text-primary">${allowedFieldsList.join(', ')}</span>. Các trường thông tin nền xám đã bị khóa.`;
+                } else {
+                    noticeEl.className = 'alert alert-secondary py-2 mb-4 small';
+                    noticeEl.innerHTML = `🔒 <strong>Thông báo:</strong> Hiện tại nhà trường đã khóa tính năng cập nhật. Vui lòng liên hệ GVCN nếu có sai sót.`;
                 }
                 
                 document.getElementById('btn-save-student').style.display = canEdit ? 'block' : 'none';
