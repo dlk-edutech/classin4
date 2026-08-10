@@ -145,14 +145,14 @@
             <div class="card-body p-4">
                 <div class="input-group mb-4">
                     <span class="input-group-text bg-white border-end-0">🔍</span>
-                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 border-end-0 ps-0" placeholder="Nhập từ khóa (Tên, Mã...)" oninput="searchStudent()">
+                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 border-end-0 ps-0" placeholder="Nhập tên học sinh (VD: Y ČHÊNG, YCH, nguyen van a...)" oninput="searchStudent()">
                     <button class="btn btn-outline-secondary border-start-0 bg-white text-primary" type="button" onclick="forceReloadCache()" title="Làm mới dữ liệu">🔄</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle" id="guest-table-search">
                         <thead id="guest-table-search-head"></thead>
                         <tbody id="guest-table-search-body">
-                            <tr><td class="text-center text-muted py-4">Vui lòng nhập từ khóa để tìm kiếm</td></tr>
+                            <tr><td colspan="10" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -276,8 +276,8 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Tên Trường Dữ Liệu (Cột Excel)</th>
-                                    <th class="text-center" width="15%">Khách / HS được XEM</th>
-                                    <th class="text-center" width="15%">HS được SỬA</th>
+                                    <th class="text-center" width="20%">Khách được XEM</th>
+                                    <th class="text-center" width="20%">Học sinh được SỬA</th>
                                 </tr>
                             </thead>
                             <tbody id="admin-config-fields-body">
@@ -392,7 +392,7 @@
     let adminDataCache = []; 
     let currentAdminDocId = null;
     
-    // Lưu cấu hình trường dữ liệu: dynamicFields = ['Mã', 'Họ và tên', ...]
+    // Lưu cấu hình trường dữ liệu
     let dynamicFields = [];
     // Lưu quyền hạn: permissions = { 'Mã': { visible: true, editable: false }, ... }
     let fieldPermissions = {};
@@ -435,7 +435,6 @@
         const pDoc = await db.collection('config').doc('permissions').get();
         if(pDoc.exists) fieldPermissions = pDoc.data().perms || {};
         
-        // Ensure default fields if empty
         if(dynamicFields.length === 0) {
             dynamicFields = ['STT', 'Mã', 'Họ và tên', 'Lớp', 'Ngày sinh', 'Giới tính', 'Dân tộc', 'Ý kiến của học sinh', 'Ghi chú'];
         }
@@ -504,7 +503,6 @@
             const jsonData = await readExcelFile(file);
             if (jsonData.length === 0) throw new Error("File rỗng!");
 
-            // Xử lý lưu các trường động nếu là học sinh
             if(collectionName === 'students') {
                 const headers = Object.keys(jsonData[0]);
                 if(!headers.includes('Mã')) throw new Error("File bắt buộc phải có cột tên là 'Mã' để làm ID đăng nhập.");
@@ -575,14 +573,24 @@
         dynamicFields.forEach(f => {
             const isVisible = fieldPermissions[f]?.visible || false;
             const isEditable = fieldPermissions[f]?.editable || false;
-            // Khóa hiển thị của cột Mã (luôn dùng làm ID), Lớp (quan trọng) để tránh lỗi nếu ẩn
-            const forceVisible = (f === 'Mã' || f === 'Lớp' || f === 'Họ và tên');
+            
+            const forceVisible = (f === 'Lớp' || f === 'Họ và tên' || f === 'STT');
+            const forceHidden = (f === 'Mã'); // Bắt buộc ẩn Mã với khách để bảo mật
             
             tbody.innerHTML += `
                 <tr>
-                    <td class="fw-medium">${f} ${forceVisible ? '<span class="badge bg-secondary ms-2">Bắt buộc</span>' : ''}</td>
-                    <td class="text-center"><input class="form-check-input perm-vis" type="checkbox" data-field="${f}" ${isVisible || forceVisible ? 'checked' : ''} ${forceVisible ? 'disabled' : ''}></td>
-                    <td class="text-center"><input class="form-check-input perm-edit" type="checkbox" data-field="${f}" ${isEditable ? 'checked' : ''}></td>
+                    <td class="fw-medium">${f} 
+                        ${forceVisible ? '<span class="badge bg-secondary ms-2">Bắt buộc hiện</span>' : ''}
+                        ${forceHidden ? '<span class="badge bg-danger ms-2">Bảo mật (Khóa ẩn)</span>' : ''}
+                    </td>
+                    <td class="text-center">
+                        <input class="form-check-input perm-vis" type="checkbox" data-field="${f}" 
+                        ${(isVisible || forceVisible) && !forceHidden ? 'checked' : ''} 
+                        ${forceVisible || forceHidden ? 'disabled' : ''}>
+                    </td>
+                    <td class="text-center">
+                        <input class="form-check-input perm-edit" type="checkbox" data-field="${f}" ${isEditable ? 'checked' : ''}>
+                    </td>
                 </tr>
             `;
         });
@@ -649,7 +657,7 @@
             let tr = '<tr>';
             cols.forEach(c => {
                 let val = row[c] || '';
-                if(val.length > 50) val = val.substring(0, 50) + '...'; // Truncate long text
+                if(val.length > 50) val = val.substring(0, 50) + '...'; 
                 tr += `<td>${val}</td>`;
             });
             tr += `<td class="text-center bg-light">
@@ -743,7 +751,6 @@
                 snap.forEach(doc => allStudentsCache.push(doc.data()));
             }
 
-            // Populate classes dropdown
             const classSet = new Set();
             allStudentsCache.forEach(s => { if(s['Lớp']) classSet.add(s['Lớp']); });
             const classArr = Array.from(classSet).sort();
@@ -777,7 +784,6 @@
             const dt = (s['Dân tộc'] || '').toLowerCase().trim();
 
             const isFemale = (gt === 'nữ' || gt === 'nu');
-            // Dân tộc thiểu số = Có nhập dân tộc VÀ khác 'kinh'
             const isEthnic = (dt !== '' && dt !== 'kinh');
 
             if (isFemale) female++;
@@ -810,7 +816,7 @@
 
     async function loadGuestData() {
         allStudentsCache = [];
-        await fetchFieldConfigs(); // Load config for dynamic fields
+        await fetchFieldConfigs();
 
         const select = document.getElementById('guest-class-select');
         select.innerHTML = '<option value="">-- Đang tải... --</option>';
@@ -823,12 +829,13 @@
         switchGuestTab('class'); 
     }
 
-    // Render Bảng Khách (Dựa theo Dynamic Fields config visible=true)
+    // Render Bảng Khách (Tuyệt đối không hiển thị Mã)
     function renderGuestTableHeaders(theadId) {
         const thead = document.getElementById(theadId);
         let html = '<tr>';
         dynamicFields.forEach(f => {
-            if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Mã' || f === 'Lớp') {
+            if (f === 'Mã') return; // TUYỆT ĐỐI ẨN MÃ TRÊN GIAO DIỆN KHÁCH
+            if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Lớp' || f === 'STT') {
                 html += `<th>${f}</th>`;
             }
         });
@@ -872,7 +879,8 @@
                 arr.forEach(s => {
                     let tr = '<tr>';
                     dynamicFields.forEach(f => {
-                        if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Mã' || f === 'Lớp') {
+                        if (f === 'Mã') return; // ẨN MÃ
+                        if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Lớp' || f === 'STT') {
                             tr += `<td>${s[f] || ''}</td>`;
                         }
                     });
@@ -908,13 +916,13 @@
         const tbody = document.getElementById('guest-table-search-body');
         tbody.innerHTML = '';
         
-        if (!queryNorm) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Vui lòng nhập từ khóa</td></tr>'; return; }
+        if (!queryNorm) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>'; return; }
 
         const results = allStudentsCache.filter(s => {
             const nameNorm = normalizeString(s['Họ và tên'] || '');
-            const idNorm = normalizeString(s['Mã'] || '');
             const initials = nameNorm.split(/\s+/).map(word => word.charAt(0)).join('');
-            return nameNorm.includes(queryNorm) || idNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
+            // Không map Mã (ID) vào kết quả tìm kiếm của khách để bảo mật hoàn toàn
+            return nameNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
         });
 
         if (results.length === 0) {
@@ -923,7 +931,8 @@
             results.slice(0, 50).forEach(s => {
                 let tr = '<tr>';
                 dynamicFields.forEach(f => {
-                    if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Mã' || f === 'Lớp') {
+                    if (f === 'Mã') return; // ẨN MÃ
+                    if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Lớp' || f === 'STT') {
                         tr += `<td>${f === 'Họ và tên' ? `<b>${s[f]||''}</b>` : (s[f]||'')}</td>`;
                     }
                 });
