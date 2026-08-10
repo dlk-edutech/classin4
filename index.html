@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -182,7 +183,8 @@
             <div class="card-body p-4">
                 <div class="input-group mb-4">
                     <span class="input-group-text bg-white border-end-0">🔍</span>
-                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 ps-0" placeholder="Nhập tên học sinh (VD: nguyễn văn ánh, nguyen van anh, nva...)" oninput="searchStudent()">
+                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 border-end-0 ps-0" placeholder="Nhập tên học sinh (VD: Y ČHÊNG, YCH, nguyen van a...)" oninput="searchStudent()">
+                    <button class="btn btn-outline-secondary border-start-0 bg-white text-primary" type="button" onclick="forceReloadCache()" title="Làm mới dữ liệu">🔄</button>
                 </div>
                 
                 <div class="table-responsive">
@@ -280,8 +282,8 @@
                             </div>
                             <div class="col-sm-6 mb-2">
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="perm-notes">
-                                    <label class="form-check-label">Cho phép sửa Ghi chú</label>
+                                    <input class="form-check-input" type="checkbox" id="perm-opinion">
+                                    <label class="form-check-label">Cho phép nhập Ý kiến</label>
                                 </div>
                             </div>
                         </div>
@@ -359,8 +361,8 @@
                         <input type="text" id="s-ethnicity" class="form-control readonly-field" readonly>
                     </div>
                     <div class="col-12">
-                        <label class="form-label fw-semibold small">Ghi chú:</label>
-                        <input type="text" id="s-notes" class="form-control readonly-field" readonly>
+                        <label class="form-label fw-semibold small">Ý kiến của học sinh:</label>
+                        <textarea id="s-opinion" class="form-control readonly-field" rows="3" placeholder="Nhập ý kiến hoặc nguyện vọng của em tại đây..." readonly></textarea>
                     </div>
                 </div>
                 
@@ -513,7 +515,6 @@
             if (count > 0) batches.push(batch.commit());
             await Promise.all(batches);
             
-            // Xóa cache danh sách học sinh nếu nạp lại file học sinh
             if(collectionName === 'students') allStudentsCache = [];
 
             toggleLoading(false);
@@ -525,7 +526,6 @@
         }
     }
 
-    // TẢI XUỐNG DỮ LIỆU EXCEL
     async function exportDataToExcel() {
         try {
             toggleLoading(true, 'Đang gom dữ liệu, vui lòng chờ...');
@@ -567,7 +567,7 @@
             document.getElementById('perm-dob').checked = d.allowDob || false;
             document.getElementById('perm-gender').checked = d.allowGender || false;
             document.getElementById('perm-ethnicity').checked = d.allowEthnicity || false;
-            document.getElementById('perm-notes').checked = d.allowNotes || false;
+            document.getElementById('perm-opinion').checked = d.allowOpinion || false;
         }
     }
 
@@ -577,14 +577,13 @@
             allowDob: document.getElementById('perm-dob').checked,
             allowGender: document.getElementById('perm-gender').checked,
             allowEthnicity: document.getElementById('perm-ethnicity').checked,
-            allowNotes: document.getElementById('perm-notes').checked
+            allowOpinion: document.getElementById('perm-opinion').checked
         }, { merge: true });
         alert('Đã cập nhật quyền học sinh!');
     }
 
     // ================= CHỨC NĂNG KHÁCH =================
     
-    // Đổi tab trong Giao diện Khách
     function switchGuestTab(tabId) {
         document.getElementById('tab-class').classList.remove('active');
         document.getElementById('tab-search').classList.remove('active');
@@ -597,12 +596,13 @@
         } else {
             document.getElementById('tab-search').classList.add('active');
             document.getElementById('pane-search').style.display = 'block';
-            loadAllStudentsForSearch(); // Nạp dữ liệu hs vào cache khi mở tab
+            loadAllStudentsForSearch();
         }
     }
 
-    // Nạp ds lớp
     async function loadGuestData() {
+        allStudentsCache = [];
+        
         const select = document.getElementById('guest-class-select');
         select.innerHTML = '<option value="">-- Đang tải dữ liệu... --</option>';
         try {
@@ -613,22 +613,24 @@
             });
         } catch (e) { select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>'; }
         
-        switchGuestTab('class'); // Mặc định mở tab tra cứu lớp
+        switchGuestTab('class'); 
     }
 
-    // HÀM CHUẨN HÓA KÝ TỰ (Hỗ trợ tốt tiếng dân tộc thiểu số như Ê Đê)
     function normalizeString(str) {
         if (!str) return '';
-        // 1. Sử dụng Unicode Normalization Form Canonical Decomposition (NFD)
-        // Nó sẽ tách mọi ký tự có dấu (kể cả Č, Ê, Ơ...) thành ký tự gốc + ký hiệu dấu
         str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        // 2. Chuyển đổi thủ công chữ Đ (vì NFD không tách được Đ)
         str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D');
-        // 3. Chuyển về chữ thường và xóa khoảng trắng thừa
         return str.toLowerCase().trim();
     }
 
-    // Tải toàn bộ HS vào cache
+    async function forceReloadCache() {
+        toggleLoading(true, 'Đang tải lại dữ liệu mới nhất...');
+        allStudentsCache = []; 
+        await loadAllStudentsForSearch(); 
+        searchStudent(); 
+        toggleLoading(false);
+    }
+
     async function loadAllStudentsForSearch() {
         if(allStudentsCache.length === 0) {
             try {
@@ -638,11 +640,10 @@
         }
     }
 
-    // Tìm kiếm HS nâng cao
     function searchStudent() {
         const rawQuery = document.getElementById('guest-search-input').value;
-        const queryNorm = normalizeString(rawQuery);           // VD: "ych" hoặc "y cheng hdok"
-        const queryNoSpace = queryNorm.replace(/\s+/g, '');    // Loại bỏ toàn bộ dấu cách để so sánh chuỗi viết tắt
+        const queryNorm = normalizeString(rawQuery);
+        const queryNoSpace = queryNorm.replace(/\s+/g, '');
         
         const tbody = document.getElementById('guest-search-results');
         tbody.innerHTML = '';
@@ -654,19 +655,14 @@
 
         const results = allStudentsCache.filter(s => {
             const nameNorm = normalizeString(s['Họ và tên'] || '');
-            
-            // Tạo chuỗi viết tắt (Lấy chữ cái đầu của mỗi từ)
-            // VD: "y cheng hdok" -> "ych"
             const initials = nameNorm.split(/\s+/).map(word => word.charAt(0)).join('');
             
-            // So khớp: Trùng tên một phần HOẶC trùng các ký tự viết tắt đầu
             return nameNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
         });
 
         if (results.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Không tìm thấy học sinh phù hợp</td></tr>';
         } else {
-            // Hiển thị tối đa 50 kết quả để tránh nghẽn giao diện
             results.slice(0, 50).forEach(s => {
                 tbody.innerHTML += `<tr>
                     <td class="fw-medium text-primary">${s['Họ và tên'] || ''}</td>
@@ -782,12 +778,12 @@
                 document.getElementById('s-dob').value = data['Ngày sinh'] || '';
                 document.getElementById('s-gender').value = data['Giới tính'] || '';
                 document.getElementById('s-ethnicity').value = data['Dân tộc'] || '';
-                document.getElementById('s-notes').value = data['Ghi chú'] || '';
+                document.getElementById('s-opinion').value = data['Ý kiến của học sinh'] || '';
 
                 const permDoc = await db.collection('config').doc('permissions').get();
                 let canEdit = false;
                 
-                ['s-code', 's-dob', 's-gender', 's-ethnicity', 's-notes'].forEach(id => toggleFieldAccess(id, false));
+                ['s-code', 's-dob', 's-gender', 's-ethnicity', 's-opinion'].forEach(id => toggleFieldAccess(id, false));
 
                 if(permDoc.exists) {
                     const p = permDoc.data();
@@ -795,7 +791,7 @@
                     if(p.allowDob) { toggleFieldAccess('s-dob', true); canEdit = true; }
                     if(p.allowGender) { toggleFieldAccess('s-gender', true); canEdit = true; }
                     if(p.allowEthnicity) { toggleFieldAccess('s-ethnicity', true); canEdit = true; }
-                    if(p.allowNotes) { toggleFieldAccess('s-notes', true); canEdit = true; }
+                    if(p.allowOpinion) { toggleFieldAccess('s-opinion', true); canEdit = true; }
                 }
                 
                 document.getElementById('btn-save-student').style.display = canEdit ? 'block' : 'none';
@@ -813,7 +809,7 @@
         if(!document.getElementById('s-dob').readOnly) updates['Ngày sinh'] = document.getElementById('s-dob').value;
         if(!document.getElementById('s-gender').readOnly) updates['Giới tính'] = document.getElementById('s-gender').value;
         if(!document.getElementById('s-ethnicity').readOnly) updates['Dân tộc'] = document.getElementById('s-ethnicity').value;
-        if(!document.getElementById('s-notes').readOnly) updates['Ghi chú'] = document.getElementById('s-notes').value;
+        if(!document.getElementById('s-opinion').readOnly) updates['Ý kiến của học sinh'] = document.getElementById('s-opinion').value;
 
         try {
             toggleLoading(true, "Đang lưu thay đổi...");
