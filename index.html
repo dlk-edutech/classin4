@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -286,9 +285,21 @@
             <div class="card-body p-4">
                 <input type="hidden" id="s-old-id">
                 
-                <div class="bg-light p-3 rounded mb-4 text-center">
-                    <h4 class="fw-bold text-primary mb-1" id="s-name"></h4>
-                    <p class="mb-0 text-muted">Lớp: <span id="s-class" class="fw-bold"></span></p>
+                <div class="bg-light p-3 rounded mb-4">
+                    <div class="text-center mb-3">
+                        <h4 class="fw-bold text-primary mb-1" id="s-name"></h4>
+                        <p class="mb-0 text-muted">Lớp: <span id="s-class" class="fw-bold text-dark"></span></p>
+                    </div>
+                    <hr>
+                    <!-- THÔNG TIN TỔ HỢP MÔN HỌC -->
+                    <div>
+                        <p class="mb-2"><strong>Mã Tổ hợp:</strong> <span id="s-combo-id" class="badge bg-info text-dark">Đang tải...</span></p>
+                        <div id="s-combo-details" class="small text-muted" style="display: none;">
+                            <p class="mb-1"><strong>Môn học - HĐGD bắt buộc:</strong> <span id="s-combo-mandatory" class="text-dark"></span></p>
+                            <p class="mb-1"><strong>Môn tự chọn:</strong> <span id="s-combo-elective" class="text-dark"></span></p>
+                            <p class="mb-0"><strong>Chuyên đề:</strong> <span id="s-combo-specialized" class="text-dark"></span></p>
+                        </div>
+                    </div>
                 </div>
                 
                 <p class="text-muted small mb-3 fst-italic">Các trường có nền xám đã được nhà trường bảo mật. Vui lòng liên hệ GVCN nếu có sai sót.</p>
@@ -617,7 +628,34 @@
                 document.getElementById('s-old-id').value = sid;
                 document.getElementById('s-code').value = sid; // Mã (Mới)
                 document.getElementById('s-name').innerText = data['Họ và tên'] || 'Không rõ';
-                document.getElementById('s-class').innerText = data['Lớp'] || 'Không rõ';
+                
+                const studentClass = data['Lớp'];
+                document.getElementById('s-class').innerText = studentClass || 'Không rõ';
+                
+                // Lấy thông tin lớp và tổ hợp
+                document.getElementById('s-combo-id').innerText = 'Đang tải...';
+                document.getElementById('s-combo-details').style.display = 'none';
+                
+                if (studentClass) {
+                    const classDoc = await db.collection('classes').doc(studentClass).get();
+                    if (classDoc.exists) {
+                        const comboId = classDoc.data()['Mã TH môn'];
+                        document.getElementById('s-combo-id').innerText = comboId || 'Không rõ';
+                        
+                        if (comboId) {
+                            const comboDoc = await db.collection('combos').doc(String(comboId)).get();
+                            if (comboDoc.exists) {
+                                const cbData = comboDoc.data();
+                                document.getElementById('s-combo-mandatory').innerText = cbData['Môn học - hoạt động GD bắt buộc'] || '';
+                                document.getElementById('s-combo-elective').innerText = cbData['Môn tự chọn'] || '';
+                                document.getElementById('s-combo-specialized').innerText = cbData['Các môn có chuyên đề'] || '';
+                                document.getElementById('s-combo-details').style.display = 'block';
+                            }
+                        }
+                    } else {
+                        document.getElementById('s-combo-id').innerText = 'Chưa phân lớp';
+                    }
+                }
                 
                 document.getElementById('s-dob').value = data['Ngày sinh'] || '';
                 document.getElementById('s-gender').value = data['Giới tính'] || '';
