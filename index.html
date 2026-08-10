@@ -67,6 +67,10 @@
             background: rgba(255, 255, 255, 0.95); z-index: 9999;
             display: none; flex-direction: column; align-items: center; justify-content: center;
         }
+        
+        /* Nav tabs khách */
+        .nav-pills .nav-link { border-radius: 8px; color: #475569; font-weight: 500; cursor: pointer; }
+        .nav-pills .nav-link.active { background-color: #10b981; color: white; }
     </style>
 </head>
 <body>
@@ -126,7 +130,18 @@
     <!-- KHÁCH: XEM THÔNG TIN -->
     <div id="guest-view" class="view-section">
         <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
-        <div class="card">
+        
+        <ul class="nav nav-pills mb-4 justify-content-center gap-2">
+            <li class="nav-item">
+                <a class="nav-link active px-4" id="tab-class" onclick="switchGuestTab('class')">Tra Cứu Theo Lớp</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-4" id="tab-search" onclick="switchGuestTab('search')">Tìm Kiếm Học Sinh</a>
+            </li>
+        </ul>
+
+        <!-- Pane: Tra Cứu Theo Lớp -->
+        <div id="pane-class" class="card">
             <div class="card-header text-success">Tra cứu thông tin lớp</div>
             <div class="card-body p-4">
                 <select id="guest-class-select" class="form-select form-select-lg mb-4" onchange="fetchClassDetails()">
@@ -157,6 +172,28 @@
                             <tbody id="guest-student-list"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pane: Tìm Kiếm Học Sinh -->
+        <div id="pane-search" class="card" style="display: none;">
+            <div class="card-header text-success">Tìm kiếm nhanh học sinh</div>
+            <div class="card-body p-4">
+                <div class="input-group mb-4">
+                    <span class="input-group-text bg-white border-end-0">🔍</span>
+                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 ps-0" placeholder="Nhập tên học sinh (có dấu, không dấu, hoặc viết tắt...)" oninput="searchStudent()">
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th><th>Lớp</th></tr>
+                        </thead>
+                        <tbody id="guest-search-results">
+                            <tr><td colspan="5" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -358,6 +395,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // Biến toàn cục lưu danh sách HS để tìm kiếm nhanh
+    let allStudentsCache = [];
+
     // ================= CHUYỂN ĐỔI GIAO DIỆN =================
     function showView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
@@ -472,6 +512,9 @@
             });
             if (count > 0) batches.push(batch.commit());
             await Promise.all(batches);
+            
+            // Xóa cache danh sách học sinh nếu nạp lại file học sinh
+            if(collectionName === 'students') allStudentsCache = [];
 
             toggleLoading(false);
             alert(`✅ Tải lên THÀNH CÔNG!`);
@@ -482,25 +525,22 @@
         }
     }
 
-    // TẢI XUỐNG DỮ LIỆU EXCEL (Yêu cầu 3)
+    // TẢI XUỐNG DỮ LIỆU EXCEL
     async function exportDataToExcel() {
         try {
             toggleLoading(true, 'Đang gom dữ liệu, vui lòng chờ...');
             const wb = XLSX.utils.book_new();
 
-            // Lấy Lớp
             const clsSnap = await db.collection('classes').get();
             const clsData = [];
             clsSnap.forEach(d => clsData.push(d.data()));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clsData), "Thông tin Lớp");
 
-            // Lấy Tổ hợp
             const cbSnap = await db.collection('combos').get();
             const cbData = [];
             cbSnap.forEach(d => cbData.push(d.data()));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cbData), "Tổ Hợp Môn");
 
-            // Lấy Học Sinh
             const stSnap = await db.collection('students').get();
             const stData = [];
             stSnap.forEach(d => stData.push(d.data()));
@@ -511,7 +551,6 @@
             });
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stData), "Học Sinh");
 
-            // Xuất file
             XLSX.writeFile(wb, "DuLieuTruong_THPT_TranPhu.xlsx");
             toggleLoading(false);
         } catch (error) {
@@ -544,6 +583,25 @@
     }
 
     // ================= CHỨC NĂNG KHÁCH =================
+    
+    // Đổi tab trong Giao diện Khách
+    function switchGuestTab(tabId) {
+        document.getElementById('tab-class').classList.remove('active');
+        document.getElementById('tab-search').classList.remove('active');
+        document.getElementById('pane-class').style.display = 'none';
+        document.getElementById('pane-search').style.display = 'none';
+
+        if(tabId === 'class') {
+            document.getElementById('tab-class').classList.add('active');
+            document.getElementById('pane-class').style.display = 'block';
+        } else {
+            document.getElementById('tab-search').classList.add('active');
+            document.getElementById('pane-search').style.display = 'block';
+            loadAllStudentsForSearch(); // Nạp dữ liệu hs vào cache khi mở tab
+        }
+    }
+
+    // Nạp ds lớp
     async function loadGuestData() {
         const select = document.getElementById('guest-class-select');
         select.innerHTML = '<option value="">-- Đang tải dữ liệu... --</option>';
@@ -554,6 +612,69 @@
                 select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
             });
         } catch (e) { select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>'; }
+        
+        switchGuestTab('class'); // Mặc định mở tab tra cứu lớp
+    }
+
+    // Tiện ích loại bỏ dấu tiếng Việt để tìm kiếm
+    function removeVietnameseTones(str) {
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o"); 
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u"); 
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y"); 
+        str = str.replace(/đ/g,"d");
+        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+        str = str.replace(/Đ/g, "D");
+        return str.toLowerCase().trim();
+    }
+
+    // Tải toàn bộ HS vào cache
+    async function loadAllStudentsForSearch() {
+        if(allStudentsCache.length === 0) {
+            try {
+                const snap = await db.collection('students').get();
+                snap.forEach(doc => allStudentsCache.push(doc.data()));
+            } catch (error) { console.error("Lỗi khi tải danh sách học sinh: ", error); }
+        }
+    }
+
+    // Tìm kiếm HS
+    function searchStudent() {
+        const query = removeVietnameseTones(document.getElementById('guest-search-input').value);
+        const tbody = document.getElementById('guest-search-results');
+        tbody.innerHTML = '';
+        
+        if (!query) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>';
+            return;
+        }
+
+        const results = allStudentsCache.filter(s => {
+            const name = removeVietnameseTones(s['Họ và tên'] || '');
+            return name.includes(query);
+        });
+
+        if (results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Không tìm thấy học sinh phù hợp</td></tr>';
+        } else {
+            // Hiển thị tối đa 50 kết quả để tránh nghẽn giao diện
+            results.slice(0, 50).forEach(s => {
+                tbody.innerHTML += `<tr>
+                    <td class="fw-medium text-primary">${s['Họ và tên'] || ''}</td>
+                    <td>${s['Ngày sinh'] || ''}</td>
+                    <td>${s['Giới tính'] || ''}</td>
+                    <td>${s['Dân tộc'] || ''}</td>
+                    <td><span class="badge bg-secondary">${s['Lớp'] || ''}</span></td>
+                </tr>`;
+            });
+        }
     }
 
     async function fetchClassDetails() {
@@ -626,13 +747,12 @@
                 const data = doc.data();
                 
                 document.getElementById('s-old-id').value = sid;
-                document.getElementById('s-code').value = sid; // Mã (Mới)
+                document.getElementById('s-code').value = sid; 
                 document.getElementById('s-name').innerText = data['Họ và tên'] || 'Không rõ';
                 
                 const studentClass = data['Lớp'];
                 document.getElementById('s-class').innerText = studentClass || 'Không rõ';
                 
-                // Lấy thông tin lớp và tổ hợp
                 document.getElementById('s-combo-id').innerText = 'Đang tải...';
                 document.getElementById('s-combo-details').style.display = 'none';
                 
@@ -696,9 +816,7 @@
         try {
             toggleLoading(true, "Đang lưu thay đổi...");
             
-            // Nếu học sinh ĐỔI MÃ
             if (newId !== oldId && !document.getElementById('s-code').readOnly) {
-                // Kiểm tra mã mới đã tồn tại chưa
                 const checkExist = await db.collection('students').doc(newId).get();
                 if(checkExist.exists) {
                     toggleLoading(false);
@@ -706,18 +824,16 @@
                     return;
                 }
 
-                // Copy dữ liệu cũ + cập nhật trường mới + cập nhật Mã
                 const oldDoc = await db.collection('students').doc(oldId).get();
                 const newData = { ...oldDoc.data(), ...updates, 'Mã': newId };
                 
-                await db.collection('students').doc(newId).set(newData); // Tạo mới
-                await db.collection('students').doc(oldId).delete();     // Xóa cũ
+                await db.collection('students').doc(newId).set(newData); 
+                await db.collection('students').doc(oldId).delete();     
                 
-                document.getElementById('s-old-id').value = newId;       // Cập nhật state UI
+                document.getElementById('s-old-id').value = newId;       
                 toggleLoading(false);
                 alert("Đã cập nhật thông tin VÀ ĐỔI MÃ thành công. Lần đăng nhập sau hãy dùng mã mới nhé!");
             } else {
-                // Chỉ cập nhật thông tin bình thường
                 await db.collection('students').doc(oldId).set(updates, { merge: true });
                 toggleLoading(false);
                 alert('Đã cập nhật thông tin thành công!');
