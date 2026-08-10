@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -50,6 +49,21 @@
         .admin-tabs .nav-link { color: #475569; font-weight: 600; border: none; border-bottom: 3px solid transparent; padding: 1rem 1.5rem; border-radius: 0; }
         .admin-tabs .nav-link.active { color: var(--primary-color); border-bottom-color: var(--primary-color); background: none; }
         .admin-tabs .nav-link:hover { color: var(--primary-color); }
+
+        /* Hiệu ứng trỏ chuột cho thẻ ở Trang chủ */
+        .role-card {
+            cursor: pointer; /* Hiển thị bàn tay */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .role-card:hover {
+            transform: translateY(-5px); /* Nổi thẻ lên nhẹ */
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            border-color: #cbd5e1;
+        }
+        .role-card-success:hover { border-color: #10b981; }
+        .role-card-primary:hover { border-color: #3b82f6; }
+        .role-card-danger:hover { border-color: #ef4444; }
     </style>
 </head>
 <body>
@@ -81,19 +95,22 @@
         </div>
         <div class="row justify-content-center g-4">
             <div class="col-md-4 col-sm-6">
-                <div class="card h-100 text-center p-4 cursor-pointer" onclick="showView('guest-view'); loadGuestData()">
+                <!-- Thêm class role-card và role-card-success -->
+                <div class="card h-100 text-center p-4 role-card role-card-success" onclick="showView('guest-view'); loadGuestData()">
                     <h3 class="mb-3">🔍</h3><h5 class="fw-bold text-success">Khách Truy Cập</h5>
                     <p class="text-muted small mb-0">Tra cứu thông tin lớp học, tổ hợp môn và tìm kiếm học sinh.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
-                <div class="card h-100 text-center p-4 cursor-pointer" onclick="showView('student-login')">
+                <!-- Thêm class role-card và role-card-primary -->
+                <div class="card h-100 text-center p-4 role-card role-card-primary" onclick="showView('student-login')">
                     <h3 class="mb-3">🎓</h3><h5 class="fw-bold text-primary">Học Sinh</h5>
                     <p class="text-muted small mb-0">Đăng nhập để xem và cập nhật thông tin cá nhân của bạn.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
-                <div class="card h-100 text-center p-4 cursor-pointer" onclick="showView('admin-login')">
+                <!-- Thêm class role-card và role-card-danger -->
+                <div class="card h-100 text-center p-4 role-card role-card-danger" onclick="showView('admin-login')">
                     <h3 class="mb-3">⚙️</h3><h5 class="fw-bold text-danger">Quản Trị Viên</h5>
                     <p class="text-muted small mb-0">Khu vực dành riêng cho nhà trường để quản lý dữ liệu.</p>
                 </div>
@@ -394,7 +411,6 @@
     
     // Lưu cấu hình trường dữ liệu
     let dynamicFields = [];
-    // Lưu quyền hạn: permissions = { 'Mã': { visible: true, editable: false }, ... }
     let fieldPermissions = {};
 
     const tableSchemas = {
@@ -575,7 +591,7 @@
             const isEditable = fieldPermissions[f]?.editable || false;
             
             const forceVisible = (f === 'Lớp' || f === 'Họ và tên' || f === 'STT');
-            const forceHidden = (f === 'Mã'); // Bắt buộc ẩn Mã với khách để bảo mật
+            const forceHidden = (f === 'Mã'); // Bắt buộc ẩn Mã với khách
             
             tbody.innerHTML += `
                 <tr>
@@ -834,7 +850,7 @@
         const thead = document.getElementById(theadId);
         let html = '<tr>';
         dynamicFields.forEach(f => {
-            if (f === 'Mã') return; // TUYỆT ĐỐI ẨN MÃ TRÊN GIAO DIỆN KHÁCH
+            if (f === 'Mã') return; // ẨN MÃ
             if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Lớp' || f === 'STT') {
                 html += `<th>${f}</th>`;
             }
@@ -921,7 +937,6 @@
         const results = allStudentsCache.filter(s => {
             const nameNorm = normalizeString(s['Họ và tên'] || '');
             const initials = nameNorm.split(/\s+/).map(word => word.charAt(0)).join('');
-            // Không map Mã (ID) vào kết quả tìm kiếm của khách để bảo mật hoàn toàn
             return nameNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
         });
 
