@@ -78,7 +78,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="#" onclick="showView('role-selector')">🏫 THPT Số 1 Trần Phú</a>
+        <a class="navbar-brand" href="#" onclick="logout()">🏫 THPT Số 1 Trần Phú</a>
         <div class="d-flex gap-2">
             <button class="btn btn-sm btn-outline-secondary d-none" id="btn-logout" onclick="logout()">Đăng xuất</button>
         </div>
@@ -95,21 +95,18 @@
         </div>
         <div class="row justify-content-center g-4">
             <div class="col-md-4 col-sm-6">
-                <!-- Thêm class role-card và role-card-success -->
                 <div class="card h-100 text-center p-4 role-card role-card-success" onclick="showView('guest-view'); loadGuestData()">
                     <h3 class="mb-3">🔍</h3><h5 class="fw-bold text-success">Khách Truy Cập</h5>
                     <p class="text-muted small mb-0">Tra cứu thông tin lớp học, tổ hợp môn và tìm kiếm học sinh.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
-                <!-- Thêm class role-card và role-card-primary -->
                 <div class="card h-100 text-center p-4 role-card role-card-primary" onclick="showView('student-login')">
                     <h3 class="mb-3">🎓</h3><h5 class="fw-bold text-primary">Học Sinh</h5>
                     <p class="text-muted small mb-0">Đăng nhập để xem và cập nhật thông tin cá nhân của bạn.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
-                <!-- Thêm class role-card và role-card-danger -->
                 <div class="card h-100 text-center p-4 role-card role-card-danger" onclick="showView('admin-login')">
                     <h3 class="mb-3">⚙️</h3><h5 class="fw-bold text-danger">Quản Trị Viên</h5>
                     <p class="text-muted small mb-0">Khu vực dành riêng cho nhà trường để quản lý dữ liệu.</p>
@@ -120,7 +117,8 @@
 
     <!-- KHÁCH: XEM THÔNG TIN -->
     <div id="guest-view" class="view-section">
-        <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
+        <!-- Đã sửa showView thành logout để reset hoàn toàn UI -->
+        <button class="btn btn-light mb-3 shadow-sm" onclick="logout()">← Quay lại</button>
         <ul class="nav nav-pills mb-4 justify-content-center gap-2">
             <li class="nav-item"><a class="nav-link active px-4" id="tab-class" onclick="switchGuestTab('class')">Tra Cứu Theo Lớp</a></li>
             <li class="nav-item"><a class="nav-link px-4" id="tab-search" onclick="switchGuestTab('search')">Tìm Kiếm Học Sinh</a></li>
@@ -179,7 +177,7 @@
 
     <!-- HỌC SINH: ĐĂNG NHẬP -->
     <div id="student-login" class="view-section">
-        <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
+        <button class="btn btn-light mb-3 shadow-sm" onclick="logout()">← Quay lại</button>
         <div class="card mx-auto" style="max-width: 420px;">
             <div class="card-body p-4 text-center">
                 <h4 class="fw-bold mb-4 text-primary">Học Sinh Đăng Nhập</h4>
@@ -203,7 +201,7 @@
             <div class="card-body p-4">
                 <input type="hidden" id="s-old-id">
                 
-                <div class="bg-light p-3 rounded mb-4">
+                <div class="bg-light p-3 rounded mb-4" id="s-header-info" style="display:none;">
                     <div class="text-center mb-3">
                         <h4 class="fw-bold text-primary mb-1" id="s-name-display"></h4>
                         <p class="mb-0 text-muted">Lớp: <span id="s-class-display" class="fw-bold text-dark"></span></p>
@@ -233,7 +231,7 @@
 
     <!-- ADMIN: ĐĂNG NHẬP -->
     <div id="admin-login" class="view-section">
-        <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
+        <button class="btn btn-light mb-3 shadow-sm" onclick="logout()">← Quay lại</button>
         <div class="card mx-auto" style="max-width: 420px;">
             <div class="card-body p-4 text-center">
                 <h4 class="fw-bold mb-4">Quản Trị Hệ Thống</h4>
@@ -248,7 +246,6 @@
         <h3 class="fw-bold mb-4">Bảng Điều Khiển Admin</h3>
         
         <div class="card shadow-sm">
-            <!-- Admin Tabs Navigation -->
             <ul class="nav nav-tabs admin-tabs d-flex flex-wrap" id="adminTabRole" role="tablist">
                 <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link active w-100" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button">📁 Nạp/Xuất Excel</button></li>
                 <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#tab-fields" type="button" onclick="loadAdminConfigFields()">⚙️ Cấu hình Cột</button></li>
@@ -258,7 +255,6 @@
             </ul>
 
             <div class="tab-content p-4 border-top-0">
-                <!-- TAB 1: Nạp & Xuất Excel -->
                 <div class="tab-pane fade show active" id="tab-upload" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="text-primary fw-bold mb-0">Cập Nhật Dữ Liệu</h5>
@@ -284,7 +280,6 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: Cấu hình Cột & Quyền -->
                 <div class="tab-pane fade" id="tab-fields" role="tabpanel">
                     <h5 class="text-primary fw-bold mb-3">Cài Đặt Cột Hiển Thị & Quyền Chỉnh Sửa</h5>
                     <p class="text-muted small">Cài đặt các cột dữ liệu của Học sinh sẽ xuất hiện trên giao diện Khách và cho phép Học sinh được sửa. (Dữ liệu được nhận diện tự động từ file Excel Học sinh đã nạp).</p>
@@ -297,15 +292,12 @@
                                     <th class="text-center" width="20%">Học sinh được SỬA</th>
                                 </tr>
                             </thead>
-                            <tbody id="admin-config-fields-body">
-                                <!-- Render from JS -->
-                            </tbody>
+                            <tbody id="admin-config-fields-body"></tbody>
                         </table>
                     </div>
                     <button class="btn btn-warning mt-2 px-5" onclick="saveAdminConfigFields()">Lưu Cấu Hình</button>
                 </div>
 
-                <!-- TAB 3: Quản lý trực tiếp -->
                 <div class="tab-pane fade" id="tab-manage" role="tabpanel">
                     <h5 class="text-primary fw-bold mb-3">Quản Lý & Chỉnh Sửa Dữ Liệu Trực Tiếp</h5>
                     <div class="row mb-3">
@@ -328,7 +320,6 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: Thống Kê -->
                 <div class="tab-pane fade" id="tab-stats" role="tabpanel">
                     <h5 class="text-primary fw-bold mb-3">Thống Kê Số Liệu Học Sinh</h5>
                     <div class="row mb-4 align-items-end">
@@ -356,7 +347,6 @@
                     </div>
                 </div>
 
-                <!-- TAB 5: Bảo Mật -->
                 <div class="tab-pane fade" id="tab-security" role="tabpanel">
                     <h5 class="text-danger fw-bold mb-3">Bảo Mật Hệ Thống</h5>
                     <p class="text-muted">Đổi mã đăng nhập để bảo vệ trang quản trị khỏi truy cập trái phép.</p>
@@ -408,8 +398,6 @@
     let allStudentsCache = [];
     let adminDataCache = []; 
     let currentAdminDocId = null;
-    
-    // Lưu cấu hình trường dữ liệu
     let dynamicFields = [];
     let fieldPermissions = {};
 
@@ -426,10 +414,25 @@
         (viewId === 'admin-dashboard' || viewId === 'student-dashboard') ? btnLogout.classList.remove('d-none') : btnLogout.classList.add('d-none');
     }
 
+    // [CẬP NHẬT] Hàm Logout làm sạch hoàn toàn giao diện
     function logout() {
         showView('role-selector');
+        
+        // Reset Inputs
         document.getElementById('admin-pw').value = '';
         document.getElementById('student-id').value = '';
+        document.getElementById('guest-search-input').value = '';
+        
+        // Reset Khách
+        document.getElementById('guest-class-info').style.display = 'none';
+        document.getElementById('guest-table-class-body').innerHTML = '';
+        document.getElementById('guest-table-search-body').innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>';
+        
+        // Reset Học Sinh
+        document.getElementById('dynamic-student-form').innerHTML = '';
+        document.getElementById('s-edit-notice').style.display = 'none';
+        document.getElementById('s-header-info').style.display = 'none';
+        document.getElementById('btn-save-student').style.display = 'none';
     }
 
     function toggleLoading(show, text = 'Đang xử lý dữ liệu...') {
@@ -443,7 +446,6 @@
         return str.replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
     }
 
-    // Load Cấu hình động từ DB
     async function fetchFieldConfigs() {
         const fDoc = await db.collection('config').doc('student_fields').get();
         if(fDoc.exists) dynamicFields = fDoc.data().fields || [];
@@ -477,7 +479,7 @@
         }
     }
 
-    // ================= ADMIN: NẠP & XUẤT DỮ LIỆU =================
+    // ================= ADMIN: NẠP & XUẤT =================
     function readExcelFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -591,7 +593,7 @@
             const isEditable = fieldPermissions[f]?.editable || false;
             
             const forceVisible = (f === 'Lớp' || f === 'Họ và tên' || f === 'STT');
-            const forceHidden = (f === 'Mã'); // Bắt buộc ẩn Mã với khách
+            const forceHidden = (f === 'Mã'); 
             
             tbody.innerHTML += `
                 <tr>
@@ -831,6 +833,7 @@
     }
 
     async function loadGuestData() {
+        // [CẬP NHẬT] Xóa cache khi khách vào
         allStudentsCache = [];
         await fetchFieldConfigs();
 
@@ -845,7 +848,6 @@
         switchGuestTab('class'); 
     }
 
-    // Render Bảng Khách (Tuyệt đối không hiển thị Mã)
     function renderGuestTableHeaders(theadId) {
         const thead = document.getElementById(theadId);
         let html = '<tr>';
@@ -972,6 +974,7 @@
                 document.getElementById('s-old-id').value = sid;
                 document.getElementById('s-name-display').innerText = data['Họ và tên'] || 'Không rõ';
                 document.getElementById('s-class-display').innerText = data['Lớp'] || 'Không rõ';
+                document.getElementById('s-header-info').style.display = 'block';
                 
                 // Lấy tổ hợp môn
                 document.getElementById('s-combo-details').style.display = 'none';
@@ -989,6 +992,8 @@
                                 document.getElementById('s-combo-details').style.display = 'block';
                             }
                         }
+                    } else {
+                        document.getElementById('s-combo-id').innerText = 'Chưa phân lớp';
                     }
                 }
 
