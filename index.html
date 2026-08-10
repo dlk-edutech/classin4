@@ -22,38 +22,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --bg-color: #f1f5f9;
-            --card-radius: 12px;
-        }
-        body { 
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color); 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh; 
-            color: #334155;
-        }
+        :root { --primary-color: #2563eb; --bg-color: #f1f5f9; --card-radius: 12px; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; min-height: 100vh; color: #334155; }
         .navbar { background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .navbar-brand { font-weight: 700; color: var(--primary-color) !important; }
         .main-content { flex: 1; padding-top: 2rem; padding-bottom: 3rem; }
         .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
         .active-view { display: block; }
         
-        .card { 
-            border: none; 
-            border-radius: var(--card-radius); 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
-            margin-bottom: 1.5rem;
-        }
-        .card-header { 
-            background-color: #ffffff; 
-            border-bottom: 1px solid #f1f5f9; 
-            border-radius: var(--card-radius) var(--card-radius) 0 0 !important;
-            padding: 1.25rem 1.5rem;
-            font-weight: 600;
-        }
+        .card { border: none; border-radius: var(--card-radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        .card-header { background-color: #ffffff; border-bottom: 1px solid #f1f5f9; border-radius: var(--card-radius) var(--card-radius) 0 0 !important; padding: 1.25rem 1.5rem; font-weight: 600; }
         .form-control, .form-select { border-radius: 8px; padding: 0.6rem 1rem; border: 1px solid #cbd5e1; }
         .form-control:focus, .form-select:focus { box-shadow: 0 0 0 3px rgba(37,99,235,0.1); border-color: var(--primary-color); }
         .btn { border-radius: 8px; padding: 0.5rem 1.25rem; font-weight: 500; transition: all 0.2s; }
@@ -63,20 +41,20 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Màn hình loading */
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.95); z-index: 9999;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-        }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
         
         .nav-pills .nav-link { border-radius: 8px; color: #475569; font-weight: 500; cursor: pointer; }
         .nav-pills .nav-link.active { background-color: #10b981; color: white; }
+        
+        /* Admin Tabs styling */
+        .admin-tabs .nav-link { color: #475569; font-weight: 600; border: none; border-bottom: 3px solid transparent; padding: 1rem 1.5rem; border-radius: 0; }
+        .admin-tabs .nav-link.active { color: var(--primary-color); border-bottom-color: var(--primary-color); background: none; }
+        .admin-tabs .nav-link:hover { color: var(--primary-color); }
     </style>
 </head>
 <body>
 
-<!-- MÀN HÌNH CHỜ (LOADING) -->
+<!-- MÀN HÌNH CHỜ -->
 <div id="loading-overlay">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
     <h5 class="mt-3 text-primary fw-semibold" id="loading-text">Đang xử lý dữ liệu...</h5>
@@ -86,9 +64,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="#" onclick="showView('role-selector')">
-            🏫 THPT Số 1 Trần Phú
-        </a>
+        <a class="navbar-brand" href="#" onclick="showView('role-selector')">🏫 THPT Số 1 Trần Phú</a>
         <div class="d-flex gap-2">
             <button class="btn btn-sm btn-outline-secondary d-none" id="btn-logout" onclick="logout()">Đăng xuất</button>
         </div>
@@ -105,23 +81,20 @@
         </div>
         <div class="row justify-content-center g-4">
             <div class="col-md-4 col-sm-6">
-                <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('guest-view'); loadGuestData()">
-                    <h3 class="mb-3">🔍</h3>
-                    <h5 class="fw-bold text-success">Khách Truy Cập</h5>
+                <div class="card h-100 text-center p-4 cursor-pointer" onclick="showView('guest-view'); loadGuestData()">
+                    <h3 class="mb-3">🔍</h3><h5 class="fw-bold text-success">Khách Truy Cập</h5>
                     <p class="text-muted small mb-0">Tra cứu thông tin lớp học, tổ hợp môn và tìm kiếm học sinh.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
-                <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('student-login')">
-                    <h3 class="mb-3">🎓</h3>
-                    <h5 class="fw-bold text-primary">Học Sinh</h5>
+                <div class="card h-100 text-center p-4 cursor-pointer" onclick="showView('student-login')">
+                    <h3 class="mb-3">🎓</h3><h5 class="fw-bold text-primary">Học Sinh</h5>
                     <p class="text-muted small mb-0">Đăng nhập để xem và cập nhật thông tin cá nhân của bạn.</p>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6">
-                <div class="card h-100 text-center p-4 cursor-pointer" style="cursor:pointer;" onclick="showView('admin-login')">
-                    <h3 class="mb-3">⚙️</h3>
-                    <h5 class="fw-bold text-danger">Quản Trị Viên</h5>
+                <div class="card h-100 text-center p-4 cursor-pointer" onclick="showView('admin-login')">
+                    <h3 class="mb-3">⚙️</h3><h5 class="fw-bold text-danger">Quản Trị Viên</h5>
                     <p class="text-muted small mb-0">Khu vực dành riêng cho nhà trường để quản lý dữ liệu.</p>
                 </div>
             </div>
@@ -131,7 +104,6 @@
     <!-- KHÁCH: XEM THÔNG TIN -->
     <div id="guest-view" class="view-section">
         <button class="btn btn-light mb-3 shadow-sm" onclick="showView('role-selector')">← Quay lại</button>
-        
         <ul class="nav nav-pills mb-4 justify-content-center gap-2">
             <li class="nav-item"><a class="nav-link active px-4" id="tab-class" onclick="switchGuestTab('class')">Tra Cứu Theo Lớp</a></li>
             <li class="nav-item"><a class="nav-link px-4" id="tab-search" onclick="switchGuestTab('search')">Tìm Kiếm Học Sinh</a></li>
@@ -159,9 +131,9 @@
                     </div>
                     <h6 class="fw-bold mb-3">Danh sách học sinh</h6>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead><tr><th width="8%">STT</th><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th></tr></thead>
-                            <tbody id="guest-student-list"></tbody>
+                        <table class="table table-hover align-middle" id="guest-table-class">
+                            <thead id="guest-table-class-head"></thead>
+                            <tbody id="guest-table-class-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -173,13 +145,15 @@
             <div class="card-body p-4">
                 <div class="input-group mb-4">
                     <span class="input-group-text bg-white border-end-0">🔍</span>
-                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 border-end-0 ps-0" placeholder="Nhập tên học sinh (VD: Y ČHÊNG, YCH, nguyen van a...)" oninput="searchStudent()">
+                    <input type="text" id="guest-search-input" class="form-control form-control-lg border-start-0 border-end-0 ps-0" placeholder="Nhập từ khóa (Tên, Mã...)" oninput="searchStudent()">
                     <button class="btn btn-outline-secondary border-start-0 bg-white text-primary" type="button" onclick="forceReloadCache()" title="Làm mới dữ liệu">🔄</button>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead><tr><th>Họ và Tên</th><th>Ngày Sinh</th><th>Giới Tính</th><th>Dân Tộc</th><th>Lớp</th></tr></thead>
-                        <tbody id="guest-search-results"><tr><td colspan="5" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr></tbody>
+                    <table class="table table-hover align-middle" id="guest-table-search">
+                        <thead id="guest-table-search-head"></thead>
+                        <tbody id="guest-table-search-body">
+                            <tr><td class="text-center text-muted py-4">Vui lòng nhập từ khóa để tìm kiếm</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -194,9 +168,9 @@
                 <h4 class="fw-bold mb-4 text-primary">Học Sinh Đăng Nhập</h4>
                 <input type="text" id="student-id" class="form-control form-control-lg mb-2" placeholder="Nhập Mã đăng nhập">
                 <div class="form-text text-start mb-4 text-muted small bg-light p-2 rounded">
-                    📌 <strong>Hướng dẫn đăng nhập:</strong><br>
-                    • Học sinh <b>Khối 10</b>: Dùng Mã học sinh (cấp khi ĐK TS 10)<br>
-                    • Học sinh <b>Khối 11, 12</b>: Dùng Số CCCD
+                    📌 <strong>Hướng dẫn:</strong><br>
+                    • <b>Khối 10</b>: Dùng Mã học sinh (cấp khi ĐK TS 10)<br>
+                    • <b>Khối 11, 12</b>: Dùng Số CCCD
                 </div>
                 <button class="btn btn-primary btn-lg w-100" onclick="loginStudent()">Truy Cập Hồ Sơ</button>
             </div>
@@ -205,7 +179,7 @@
 
     <!-- HỌC SINH: CHỈNH SỬA THÔNG TIN -->
     <div id="student-dashboard" class="view-section">
-        <div class="card mx-auto" style="max-width: 650px;">
+        <div class="card mx-auto" style="max-width: 700px;">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <span class="fw-semibold">Hồ Sơ Cá Nhân</span>
             </div>
@@ -214,15 +188,15 @@
                 
                 <div class="bg-light p-3 rounded mb-4">
                     <div class="text-center mb-3">
-                        <h4 class="fw-bold text-primary mb-1" id="s-name"></h4>
-                        <p class="mb-0 text-muted">Lớp: <span id="s-class" class="fw-bold text-dark"></span></p>
+                        <h4 class="fw-bold text-primary mb-1" id="s-name-display"></h4>
+                        <p class="mb-0 text-muted">Lớp: <span id="s-class-display" class="fw-bold text-dark"></span></p>
                     </div>
                     <hr>
                     <div>
                         <p class="mb-2"><strong>Mã Tổ hợp:</strong> <span id="s-combo-id" class="badge bg-info text-dark">Đang tải...</span></p>
                         <div id="s-combo-details" class="small text-muted" style="display: none;">
-                            <p class="mb-1"><strong>Môn học - HĐGD bắt buộc:</strong> <span id="s-combo-mandatory" class="text-dark"></span></p>
-                            <p class="mb-1"><strong>Môn tự chọn:</strong> <span id="s-combo-elective" class="text-dark"></span></p>
+                            <p class="mb-1"><strong>Bắt buộc:</strong> <span id="s-combo-mandatory" class="text-dark"></span></p>
+                            <p class="mb-1"><strong>Tự chọn:</strong> <span id="s-combo-elective" class="text-dark"></span></p>
                             <p class="mb-0"><strong>Chuyên đề:</strong> <span id="s-combo-specialized" class="text-dark"></span></p>
                         </div>
                     </div>
@@ -230,28 +204,9 @@
                 
                 <div id="s-edit-notice" class="alert py-2 mb-4 small" role="alert" style="display: none;"></div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small">Mã đăng nhập (ID/CCCD):</label>
-                        <input type="text" id="s-code" class="form-control readonly-field" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small">Ngày sinh:</label>
-                        <input type="text" id="s-dob" class="form-control readonly-field" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small">Giới tính:</label>
-                        <input type="text" id="s-gender" class="form-control readonly-field" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small">Dân tộc:</label>
-                        <input type="text" id="s-ethnicity" class="form-control readonly-field" readonly>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold small">Ý kiến của học sinh:</label>
-                        <textarea id="s-opinion" class="form-control readonly-field" rows="3" placeholder="Nhập ý kiến hoặc nguyện vọng của em tại đây..." readonly></textarea>
-                    </div>
-                </div>
+                <!-- Form động -->
+                <div class="row g-3" id="dynamic-student-form"></div>
+                
                 <button class="btn btn-success w-100 mt-4 py-2" id="btn-save-student" onclick="updateStudentInfo()" style="display:none;">
                     Lưu Thông Tin Cập Nhật
                 </button>
@@ -266,127 +221,144 @@
             <div class="card-body p-4 text-center">
                 <h4 class="fw-bold mb-4">Quản Trị Hệ Thống</h4>
                 <input type="password" id="admin-pw" class="form-control form-control-lg mb-3" placeholder="Nhập mã đăng nhập quản trị">
-                <button class="btn btn-danger btn-lg w-100" onclick="loginAdmin()">Xác Nhận Đăng Nhập</button>
+                <button class="btn btn-danger btn-lg w-100" onclick="loginAdmin()">Đăng Nhập</button>
             </div>
         </div>
     </div>
 
     <!-- ADMIN: BẢNG ĐIỀU KHIỂN -->
     <div id="admin-dashboard" class="view-section">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold mb-0">Bảng Điều Khiển Admin</h3>
-            <button class="btn btn-success shadow-sm" onclick="exportDataToExcel()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel me-1" viewBox="0 0 16 16" style="margin-top:-3px;"><path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/></svg>
-                Tải Xuống Dữ Liệu
-            </button>
-        </div>
+        <h3 class="fw-bold mb-4">Bảng Điều Khiển Admin</h3>
+        
+        <div class="card shadow-sm">
+            <!-- Admin Tabs Navigation -->
+            <ul class="nav nav-tabs admin-tabs d-flex flex-wrap" id="adminTabRole" role="tablist">
+                <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link active w-100" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button">📁 Nạp/Xuất Excel</button></li>
+                <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#tab-fields" type="button" onclick="loadAdminConfigFields()">⚙️ Cấu hình Cột</button></li>
+                <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#tab-manage" type="button" onclick="loadAdminDataTable()">📝 Quản lý Trực tiếp</button></li>
+                <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#tab-stats" type="button" onclick="loadAdminStats()">📊 Thống kê</button></li>
+                <li class="nav-item flex-fill text-center" role="presentation"><button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#tab-security" type="button">🔒 Bảo mật</button></li>
+            </ul>
 
-        <!-- Section: Nạp Excel -->
-        <div class="card mb-4">
-            <div class="card-header text-primary">Cập Nhật Dữ Liệu (Bằng file Excel)</div>
-            <div class="card-body p-4">
-                <div class="alert alert-info py-2 small mb-4"><strong>Lưu ý:</strong> Nạp file mới sẽ xóa và ghi đè toàn bộ dữ liệu cũ của danh mục đó.</div>
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <label class="fw-bold mb-2 small">1. Thông tin Lớp</label>
-                        <input type="file" id="file-classes" class="form-control mb-2" accept=".xlsx, .xls">
-                        <button class="btn btn-primary w-100" onclick="processUpload('file-classes', 'classes')">Nạp File</button>
+            <div class="tab-content p-4 border-top-0">
+                <!-- TAB 1: Nạp & Xuất Excel -->
+                <div class="tab-pane fade show active" id="tab-upload" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-primary fw-bold mb-0">Cập Nhật Dữ Liệu</h5>
+                        <button class="btn btn-success btn-sm shadow-sm" onclick="exportDataToExcel()">⬇️ Tải Xuống Toàn Bộ Dữ Liệu</button>
                     </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold mb-2 small">2. Tổ hợp môn</label>
-                        <input type="file" id="file-combos" class="form-control mb-2" accept=".xlsx, .xls">
-                        <button class="btn btn-primary w-100" onclick="processUpload('file-combos', 'combos')">Nạp File</button>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold mb-2 small">3. Danh sách Học sinh</label>
-                        <input type="file" id="file-students" class="form-control mb-2" accept=".xlsx, .xls">
-                        <button class="btn btn-primary w-100" onclick="processUpload('file-students', 'students')">Nạp File</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section: Trình quản lý dữ liệu (MỚI) -->
-        <div class="card mb-4 border-info">
-            <div class="card-header bg-info text-white">Quản Lý & Chỉnh Sửa Dữ Liệu Trực Tiếp</div>
-            <div class="card-body p-4">
-                <div class="row mb-3">
-                    <div class="col-md-4 mb-2">
-                        <select id="admin-data-collection" class="form-select" onchange="loadAdminDataTable()">
-                            <option value="students">Bảng: Học Sinh</option>
-                            <option value="classes">Bảng: Lớp Học</option>
-                            <option value="combos">Bảng: Tổ Hợp Môn</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8 mb-2">
-                        <input type="text" id="admin-data-search" class="form-control" placeholder="Gõ để lọc/tìm kiếm thông tin (Tên, Mã, Lớp...)" oninput="filterAdminDataTable()">
-                    </div>
-                </div>
-                
-                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                    <table class="table table-bordered table-hover align-middle small">
-                        <thead class="table-light" id="admin-table-head">
-                            <!-- JS will inject headers -->
-                        </thead>
-                        <tbody id="admin-table-body">
-                            <!-- JS will inject rows -->
-                            <tr><td colspan="10" class="text-center">Đang tải dữ liệu...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card h-100">
-                    <div class="card-header text-warning">Quyền Chỉnh Sửa Của Học Sinh</div>
-                    <div class="card-body p-4">
-                        <div class="row">
-                            <div class="col-sm-6 mb-2">
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="perm-id"><label class="form-check-label">Đổi Mã HS</label></div>
-                            </div>
-                            <div class="col-sm-6 mb-2">
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="perm-dob"><label class="form-check-label">Sửa Ngày sinh</label></div>
-                            </div>
-                            <div class="col-sm-6 mb-2">
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="perm-gender"><label class="form-check-label">Sửa Giới tính</label></div>
-                            </div>
-                            <div class="col-sm-6 mb-2">
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="perm-ethnicity"><label class="form-check-label">Sửa Dân tộc</label></div>
-                            </div>
-                            <div class="col-sm-6 mb-2">
-                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="perm-opinion"><label class="form-check-label">Nhập Ý kiến</label></div>
-                            </div>
+                    <div class="alert alert-info py-2 small mb-4"><strong>Lưu ý:</strong> Nạp file mới sẽ xóa và ghi đè toàn bộ dữ liệu cũ của danh mục tương ứng. Bảng danh sách học sinh có thể chứa số lượng cột tùy ý. Cột <b>Mã</b> là bắt buộc để làm ID tài khoản.</div>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="fw-bold mb-2 small text-uppercase">1. Thông tin Lớp</label>
+                            <input type="file" id="file-classes" class="form-control mb-2" accept=".xlsx, .xls">
+                            <button class="btn btn-primary w-100" onclick="processUpload('file-classes', 'classes')">Nạp Lớp</button>
                         </div>
-                        <button class="btn btn-warning mt-4 px-4" onclick="savePermissions()">Lưu Thiết Lập</button>
+                        <div class="col-md-4">
+                            <label class="fw-bold mb-2 small text-uppercase">2. Tổ hợp môn</label>
+                            <input type="file" id="file-combos" class="form-control mb-2" accept=".xlsx, .xls">
+                            <button class="btn btn-primary w-100" onclick="processUpload('file-combos', 'combos')">Nạp Tổ Hợp</button>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="fw-bold mb-2 small text-uppercase">3. Học sinh (Tùy biến cột)</label>
+                            <input type="file" id="file-students" class="form-control mb-2" accept=".xlsx, .xls">
+                            <button class="btn btn-primary w-100" onclick="processUpload('file-students', 'students')">Nạp Học Sinh</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header text-danger">Bảo Mật</div>
-                    <div class="card-body p-4 text-center d-flex flex-column justify-content-center">
-                        <p class="text-muted small mb-3">Đổi mã đăng nhập để bảo vệ trang quản trị.</p>
-                        <button class="btn btn-outline-danger w-100" onclick="changeAdminPw()">Đổi Mã Đăng Nhập</button>
+
+                <!-- TAB 2: Cấu hình Cột & Quyền -->
+                <div class="tab-pane fade" id="tab-fields" role="tabpanel">
+                    <h5 class="text-primary fw-bold mb-3">Cài Đặt Cột Hiển Thị & Quyền Chỉnh Sửa</h5>
+                    <p class="text-muted small">Cài đặt các cột dữ liệu của Học sinh sẽ xuất hiện trên giao diện Khách và cho phép Học sinh được sửa. (Dữ liệu được nhận diện tự động từ file Excel Học sinh đã nạp).</p>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tên Trường Dữ Liệu (Cột Excel)</th>
+                                    <th class="text-center" width="15%">Khách / HS được XEM</th>
+                                    <th class="text-center" width="15%">HS được SỬA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-config-fields-body">
+                                <!-- Render from JS -->
+                            </tbody>
+                        </table>
                     </div>
+                    <button class="btn btn-warning mt-2 px-5" onclick="saveAdminConfigFields()">Lưu Cấu Hình</button>
+                </div>
+
+                <!-- TAB 3: Quản lý trực tiếp -->
+                <div class="tab-pane fade" id="tab-manage" role="tabpanel">
+                    <h5 class="text-primary fw-bold mb-3">Quản Lý & Chỉnh Sửa Dữ Liệu Trực Tiếp</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4 mb-2">
+                            <select id="admin-data-collection" class="form-select" onchange="loadAdminDataTable()">
+                                <option value="students">Bảng: Học Sinh</option>
+                                <option value="classes">Bảng: Lớp Học</option>
+                                <option value="combos">Bảng: Tổ Hợp Môn</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 mb-2">
+                            <input type="text" id="admin-data-search" class="form-control" placeholder="Gõ để lọc/tìm kiếm thông tin (Tên, Mã, Lớp...)" oninput="filterAdminDataTable()">
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover align-middle small" id="admin-table">
+                            <thead class="table-light" id="admin-table-head"></thead>
+                            <tbody id="admin-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 4: Thống Kê -->
+                <div class="tab-pane fade" id="tab-stats" role="tabpanel">
+                    <h5 class="text-primary fw-bold mb-3">Thống Kê Số Liệu Học Sinh</h5>
+                    <div class="row mb-4 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Chọn phạm vi thống kê:</label>
+                            <select id="admin-stat-filter" class="form-select" onchange="processAdminStats()">
+                                <option value="all">Toàn trường</option>
+                                <optgroup label="Theo Khối">
+                                    <option value="grade_10">Khối 10</option>
+                                    <option value="grade_11">Khối 11</option>
+                                    <option value="grade_12">Khối 12</option>
+                                </optgroup>
+                                <optgroup label="Theo Lớp" id="admin-stat-classes-group"></optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-6 text-end text-muted small">
+                            <i>* Tính năng yêu cầu dữ liệu có cột: "Lớp", "Giới tính", "Dân tộc"</i>
+                        </div>
+                    </div>
+                    <div class="row g-3" id="admin-stat-results">
+                        <div class="col-md-3 col-6"><div class="card bg-primary text-white text-center p-3 h-100"><h6 class="mb-1 opacity-75">Tổng Số</h6><h2 class="fw-bold mb-0" id="stat-total">-</h2></div></div>
+                        <div class="col-md-3 col-6"><div class="card bg-danger text-white text-center p-3 h-100"><h6 class="mb-1 opacity-75">Học sinh Nữ</h6><h2 class="fw-bold mb-0" id="stat-female">-</h2></div></div>
+                        <div class="col-md-3 col-6"><div class="card bg-success text-white text-center p-3 h-100"><h6 class="mb-1 opacity-75">Dân Tộc Thiểu Số</h6><h2 class="fw-bold mb-0" id="stat-ethnic">-</h2></div></div>
+                        <div class="col-md-3 col-6"><div class="card bg-warning text-dark text-center p-3 h-100"><h6 class="mb-1 opacity-75">Nữ DTTS</h6><h2 class="fw-bold mb-0" id="stat-female-ethnic">-</h2></div></div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: Bảo Mật -->
+                <div class="tab-pane fade" id="tab-security" role="tabpanel">
+                    <h5 class="text-danger fw-bold mb-3">Bảo Mật Hệ Thống</h5>
+                    <p class="text-muted">Đổi mã đăng nhập để bảo vệ trang quản trị khỏi truy cập trái phép.</p>
+                    <button class="btn btn-outline-danger" onclick="changeAdminPw()">Đổi Mã Đăng Nhập</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Sửa Dữ Liệu Cho Admin -->
+<!-- Modal Sửa Dữ Liệu -->
 <div class="modal fade" id="adminEditModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title">Chỉnh Sửa Bản Ghi</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body" id="admin-edit-form-container">
-        <!-- Render from JS -->
-      </div>
+      <div class="modal-body" id="admin-edit-form-container"></div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
         <button type="button" class="btn btn-primary" onclick="saveAdminEdit()">Lưu Thay Đổi</button>
@@ -403,9 +375,7 @@
 </footer>
 
 <script>
-    // ==========================================
-    // Cấu hình Firebase
-    // ==========================================
+    // ================= FIREBASE CONFIG =================
     const firebaseConfig = {
         apiKey: "AIzaSyBFsuQpiwLkGm2yQ-GiBPFpdsZr-wWABxk",
         authDomain: "class-in4.firebaseapp.com",
@@ -414,33 +384,30 @@
         messagingSenderId: "626297943069",
         appId: "1:626297943069:web:25233067e158c8663fc2f4"
     };
-    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Biến toàn cục
+    // ================= BIẾN TOÀN CỤC =================
     let allStudentsCache = [];
-    let adminDataCache = []; // Dành cho bảng Admin xem/sửa
+    let adminDataCache = []; 
     let currentAdminDocId = null;
+    
+    // Lưu cấu hình trường dữ liệu: dynamicFields = ['Mã', 'Họ và tên', ...]
+    let dynamicFields = [];
+    // Lưu quyền hạn: permissions = { 'Mã': { visible: true, editable: false }, ... }
+    let fieldPermissions = {};
 
-    // Cấu trúc cột dữ liệu mong muốn (để render bảng Admin)
     const tableSchemas = {
-        students: ['STT', 'Mã', 'Họ và tên', 'Lớp', 'Ngày sinh', 'Giới tính', 'Dân tộc', 'Ý kiến của học sinh'],
         classes: ['Lớp', 'Mã TH môn', 'Giáo viên chủ nhiệm'],
         combos: ['Mã TH môn', 'Môn học - hoạt động GD bắt buộc', 'Môn tự chọn', 'Các môn có chuyên đề']
     };
 
-    // ================= CHUYỂN ĐỔI GIAO DIỆN =================
+    // ================= TIỆN ÍCH =================
     function showView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
         document.getElementById(viewId).classList.add('active-view');
-        
         const btnLogout = document.getElementById('btn-logout');
-        if (viewId === 'admin-dashboard' || viewId === 'student-dashboard') {
-            btnLogout.classList.remove('d-none');
-        } else {
-            btnLogout.classList.add('d-none');
-        }
+        (viewId === 'admin-dashboard' || viewId === 'student-dashboard') ? btnLogout.classList.remove('d-none') : btnLogout.classList.add('d-none');
     }
 
     function logout() {
@@ -457,27 +424,34 @@
     function normalizeString(str) {
         if (!str) return '';
         str = String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D');
-        return str.toLowerCase().trim();
+        return str.replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
     }
 
-    // ================= ADMIN: ĐĂNG NHẬP & PHÂN QUYỀN =================
+    // Load Cấu hình động từ DB
+    async function fetchFieldConfigs() {
+        const fDoc = await db.collection('config').doc('student_fields').get();
+        if(fDoc.exists) dynamicFields = fDoc.data().fields || [];
+        
+        const pDoc = await db.collection('config').doc('permissions').get();
+        if(pDoc.exists) fieldPermissions = pDoc.data().perms || {};
+        
+        // Ensure default fields if empty
+        if(dynamicFields.length === 0) {
+            dynamicFields = ['STT', 'Mã', 'Họ và tên', 'Lớp', 'Ngày sinh', 'Giới tính', 'Dân tộc', 'Ý kiến của học sinh', 'Ghi chú'];
+        }
+    }
+
+    // ================= ADMIN: ĐĂNG NHẬP =================
     async function loginAdmin() {
         const pw = document.getElementById('admin-pw').value;
         try {
             const doc = await db.collection('config').doc('admin').get();
             const realPw = doc.exists ? doc.data().password : "11043006"; 
-            
             if (pw === realPw) {
                 showView('admin-dashboard');
-                loadPermissions();
-                loadAdminDataTable(); // Khởi chạy bảng dữ liệu
-            } else {
-                alert('Mã đăng nhập không chính xác!');
-            }
-        } catch (error) {
-            alert('Lỗi kết nối CSDL: ' + error.message);
-        }
+                await fetchFieldConfigs();
+            } else { alert('Mã đăng nhập không chính xác!'); }
+        } catch (error) { alert('Lỗi kết nối CSDL: ' + error.message); }
     }
 
     async function changeAdminPw() {
@@ -488,186 +462,7 @@
         }
     }
 
-    async function loadPermissions() {
-        const doc = await db.collection('config').doc('permissions').get();
-        if(doc.exists) {
-            const d = doc.data();
-            document.getElementById('perm-id').checked = d.allowId || false;
-            document.getElementById('perm-dob').checked = d.allowDob || false;
-            document.getElementById('perm-gender').checked = d.allowGender || false;
-            document.getElementById('perm-ethnicity').checked = d.allowEthnicity || false;
-            document.getElementById('perm-opinion').checked = d.allowOpinion || false;
-        }
-    }
-
-    async function savePermissions() {
-        await db.collection('config').doc('permissions').set({
-            allowId: document.getElementById('perm-id').checked,
-            allowDob: document.getElementById('perm-dob').checked,
-            allowGender: document.getElementById('perm-gender').checked,
-            allowEthnicity: document.getElementById('perm-ethnicity').checked,
-            allowOpinion: document.getElementById('perm-opinion').checked
-        }, { merge: true });
-        alert('Đã cập nhật quyền học sinh!');
-    }
-
-    // ================= ADMIN: QUẢN LÝ DỮ LIỆU BẢNG =================
-    async function loadAdminDataTable() {
-        const collection = document.getElementById('admin-data-collection').value;
-        const tbody = document.getElementById('admin-table-body');
-        const thead = document.getElementById('admin-table-head');
-        
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center">Đang tải dữ liệu...</td></tr>';
-        document.getElementById('admin-data-search').value = ''; // clear search
-
-        // Render Headers
-        const cols = tableSchemas[collection];
-        let headHtml = '<tr>';
-        cols.forEach(c => headHtml += `<th>${c}</th>`);
-        headHtml += `<th class="text-center">Hành động</th></tr>`;
-        thead.innerHTML = headHtml;
-
-        try {
-            const snap = await db.collection(collection).get();
-            adminDataCache = [];
-            snap.forEach(doc => {
-                let data = doc.data();
-                data._id = doc.id; // Lưu id thực để dễ xóa/sửa
-                adminDataCache.push(data);
-            });
-            renderAdminTable(adminDataCache, collection);
-        } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="10" class="text-danger">Lỗi: ${error.message}</td></tr>`;
-        }
-    }
-
-    function renderAdminTable(dataArray, collection) {
-        const cols = tableSchemas[collection];
-        const tbody = document.getElementById('admin-table-body');
-        tbody.innerHTML = '';
-        
-        if(dataArray.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">Không có dữ liệu</td></tr>';
-            return;
-        }
-
-        // Sắp xếp ưu tiên nếu là học sinh
-        if(collection === 'students') {
-            dataArray.sort((a,b) => (isNaN(parseInt(a['STT']))?9999:parseInt(a['STT'])) - (isNaN(parseInt(b['STT']))?9999:parseInt(b['STT'])));
-        }
-
-        dataArray.slice(0, 100).forEach(row => { // Hiển thị max 100 dòng để mượt browser, lọc sẽ ra
-            let tr = '<tr>';
-            cols.forEach(c => tr += `<td>${row[c] || ''}</td>`);
-            tr += `<td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" onclick="openAdminEditModal('${row._id}')">Sửa</button>
-                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteAdminRecord('${row._id}')">Xóa</button>
-                   </td></tr>`;
-            tbody.innerHTML += tr;
-        });
-        
-        if(dataArray.length > 100) {
-            tbody.innerHTML += `<tr><td colspan="${cols.length + 1}" class="text-center text-muted fst-italic small">Đang hiển thị 100 kết quả đầu tiên. Hãy dùng ô Tìm kiếm để xem thêm.</td></tr>`;
-        }
-    }
-
-    function filterAdminDataTable() {
-        const query = normalizeString(document.getElementById('admin-data-search').value);
-        const collection = document.getElementById('admin-data-collection').value;
-        const cols = tableSchemas[collection];
-        
-        if(!query) {
-            renderAdminTable(adminDataCache, collection);
-            return;
-        }
-
-        const filtered = adminDataCache.filter(row => {
-            // Check if any column contains the query string
-            for(let c of cols) {
-                if(normalizeString(row[c]).includes(query)) return true;
-            }
-            return false;
-        });
-        
-        renderAdminTable(filtered, collection);
-    }
-
-    // Modal Sửa
-    function openAdminEditModal(docId) {
-        const collection = document.getElementById('admin-data-collection').value;
-        const rowData = adminDataCache.find(x => x._id === docId);
-        if(!rowData) return;
-        
-        currentAdminDocId = docId;
-        const container = document.getElementById('admin-edit-form-container');
-        const cols = tableSchemas[collection];
-        
-        let formHtml = '';
-        cols.forEach(c => {
-            // Khóa trường Khóa chính (Primary Key) để tránh lỗi tham chiếu
-            const isKey = (collection === 'students' && c === 'Mã') || 
-                          (collection === 'classes' && c === 'Lớp') || 
-                          (collection === 'combos' && c === 'Mã TH môn');
-                          
-            formHtml += `
-                <div class="mb-2">
-                    <label class="form-label small fw-bold">${c} ${isKey ? '<span class="text-danger">*Khóa</span>' : ''}</label>
-                    <input type="text" class="form-control" id="edit-modal-${c}" value="${rowData[c] || ''}" ${isKey ? 'readonly style="background:#f1f5f9"' : ''}>
-                </div>
-            `;
-        });
-        container.innerHTML = formHtml;
-        
-        const editModal = new bootstrap.Modal(document.getElementById('adminEditModal'));
-        editModal.show();
-    }
-
-    async function saveAdminEdit() {
-        const collection = document.getElementById('admin-data-collection').value;
-        const cols = tableSchemas[collection];
-        const updates = {};
-        
-        cols.forEach(c => {
-            updates[c] = document.getElementById(`edit-modal-${c}`).value;
-        });
-
-        try {
-            toggleLoading(true, "Đang lưu thay đổi...");
-            await db.collection(collection).doc(currentAdminDocId).set(updates, { merge: true });
-            
-            // Tắt modal & tải lại bảng
-            const modalEl = document.getElementById('adminEditModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            modalInstance.hide();
-            
-            await loadAdminDataTable(); 
-            if(collection === 'students') allStudentsCache = []; // clear cache cho khách
-
-            toggleLoading(false);
-            alert("Lưu thành công!");
-        } catch(e) {
-            toggleLoading(false);
-            alert("Lỗi khi lưu: " + e.message);
-        }
-    }
-
-    async function deleteAdminRecord(docId) {
-        if(!confirm(`⚠️ Chú ý: Bạn có chắc chắn muốn xóa dữ liệu (Mã/ID: ${docId}) này không? Hành động này không thể hoàn tác.`)) return;
-        const collection = document.getElementById('admin-data-collection').value;
-        
-        try {
-            toggleLoading(true, "Đang xóa...");
-            await db.collection(collection).doc(docId).delete();
-            await loadAdminDataTable();
-            if(collection === 'students') allStudentsCache = []; 
-            toggleLoading(false);
-        } catch(e) {
-            toggleLoading(false);
-            alert("Xóa thất bại: " + e.message);
-        }
-    }
-
-    // ================= ADMIN: NẠP & XUẤT EXCEL =================
+    // ================= ADMIN: NẠP & XUẤT DỮ LIỆU =================
     function readExcelFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -676,7 +471,7 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const sheetName = workbook.SheetNames[0];
-                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
                     resolve(jsonData);
                 } catch (err) { reject(err); }
             };
@@ -693,8 +488,7 @@
         let count = 0;
         snapshot.docs.forEach((doc) => {
             batch.delete(doc.ref);
-            count++;
-            if (count === 500) { batches.push(batch.commit()); batch = db.batch(); count = 0; }
+            if (++count === 500) { batches.push(batch.commit()); batch = db.batch(); count = 0; }
         });
         if (count > 0) batches.push(batch.commit());
         await Promise.all(batches);
@@ -710,6 +504,14 @@
             const jsonData = await readExcelFile(file);
             if (jsonData.length === 0) throw new Error("File rỗng!");
 
+            // Xử lý lưu các trường động nếu là học sinh
+            if(collectionName === 'students') {
+                const headers = Object.keys(jsonData[0]);
+                if(!headers.includes('Mã')) throw new Error("File bắt buộc phải có cột tên là 'Mã' để làm ID đăng nhập.");
+                await db.collection('config').doc('student_fields').set({ fields: headers });
+                dynamicFields = headers;
+            }
+
             toggleLoading(true, `Đang xóa dữ liệu cũ (${collectionName})...`);
             await clearCollection(collectionName);
 
@@ -719,22 +521,18 @@
             let count = 0;
 
             jsonData.forEach(item => {
-                let docId;
-                if(collectionName === 'classes' && item['Lớp']) docId = String(item['Lớp']);
-                if(collectionName === 'combos' && item['Mã TH môn']) docId = String(item['Mã TH môn']);
-                if(collectionName === 'students' && item['Mã']) docId = String(item['Mã']);
-                
+                let docId = (collectionName === 'classes' && item['Lớp']) ? String(item['Lớp']) :
+                            (collectionName === 'combos' && item['Mã TH môn']) ? String(item['Mã TH môn']) :
+                            (collectionName === 'students' && item['Mã']) ? String(item['Mã']) : null;
                 if(docId) {
                     batch.set(db.collection(collectionName).doc(docId), item);
-                    count++;
-                    if (count === 500) { batches.push(batch.commit()); batch = db.batch(); count = 0; }
+                    if (++count === 500) { batches.push(batch.commit()); batch = db.batch(); count = 0; }
                 }
             });
             if (count > 0) batches.push(batch.commit());
             await Promise.all(batches);
             
             if(collectionName === 'students') allStudentsCache = [];
-            loadAdminDataTable(); // Refresh admin table if open
 
             toggleLoading(false);
             alert(`✅ Tải lên THÀNH CÔNG!`);
@@ -751,34 +549,249 @@
             const wb = XLSX.utils.book_new();
 
             const clsSnap = await db.collection('classes').get();
-            const clsData = [];
-            clsSnap.forEach(d => clsData.push(d.data()));
+            const clsData = []; clsSnap.forEach(d => clsData.push(d.data()));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clsData), "Thông tin Lớp");
 
             const cbSnap = await db.collection('combos').get();
-            const cbData = [];
-            cbSnap.forEach(d => cbData.push(d.data()));
+            const cbData = []; cbSnap.forEach(d => cbData.push(d.data()));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cbData), "Tổ Hợp Môn");
 
             const stSnap = await db.collection('students').get();
-            const stData = [];
-            stSnap.forEach(d => stData.push(d.data()));
-            stData.sort((a, b) => {
-                const valA = isNaN(parseInt(a['STT'])) ? 9999 : parseInt(a['STT']);
-                const valB = isNaN(parseInt(b['STT'])) ? 9999 : parseInt(b['STT']);
-                return valA - valB;
-            });
+            const stData = []; stSnap.forEach(d => stData.push(d.data()));
+            stData.sort((a, b) => (isNaN(parseInt(a['STT'])) ? 9999 : parseInt(a['STT'])) - (isNaN(parseInt(b['STT'])) ? 9999 : parseInt(b['STT'])));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stData), "Học Sinh");
 
             XLSX.writeFile(wb, "DuLieuTruong_THPT_TranPhu.xlsx");
             toggleLoading(false);
-        } catch (error) {
-            toggleLoading(false);
-            alert('Lỗi xuất dữ liệu: ' + error.message);
-        }
+        } catch (error) { toggleLoading(false); alert('Lỗi xuất dữ liệu: ' + error.message); }
     }
 
-    // ================= CHỨC NĂNG KHÁCH =================
+    // ================= ADMIN: CẤU HÌNH CỘT =================
+    async function loadAdminConfigFields() {
+        await fetchFieldConfigs();
+        const tbody = document.getElementById('admin-config-fields-body');
+        tbody.innerHTML = '';
+        
+        dynamicFields.forEach(f => {
+            const isVisible = fieldPermissions[f]?.visible || false;
+            const isEditable = fieldPermissions[f]?.editable || false;
+            // Khóa hiển thị của cột Mã (luôn dùng làm ID), Lớp (quan trọng) để tránh lỗi nếu ẩn
+            const forceVisible = (f === 'Mã' || f === 'Lớp' || f === 'Họ và tên');
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-medium">${f} ${forceVisible ? '<span class="badge bg-secondary ms-2">Bắt buộc</span>' : ''}</td>
+                    <td class="text-center"><input class="form-check-input perm-vis" type="checkbox" data-field="${f}" ${isVisible || forceVisible ? 'checked' : ''} ${forceVisible ? 'disabled' : ''}></td>
+                    <td class="text-center"><input class="form-check-input perm-edit" type="checkbox" data-field="${f}" ${isEditable ? 'checked' : ''}></td>
+                </tr>
+            `;
+        });
+    }
+
+    async function saveAdminConfigFields() {
+        const newPerms = {};
+        document.querySelectorAll('.perm-vis').forEach(el => {
+            const f = el.getAttribute('data-field');
+            if(!newPerms[f]) newPerms[f] = {};
+            newPerms[f].visible = el.checked;
+        });
+        document.querySelectorAll('.perm-edit').forEach(el => {
+            const f = el.getAttribute('data-field');
+            if(!newPerms[f]) newPerms[f] = {};
+            newPerms[f].editable = el.checked;
+        });
+
+        try {
+            toggleLoading(true, "Đang lưu cấu hình...");
+            await db.collection('config').doc('permissions').set({ perms: newPerms }, {merge: true});
+            fieldPermissions = newPerms;
+            toggleLoading(false);
+            alert("Đã lưu cấu hình trường dữ liệu!");
+        } catch (e) { toggleLoading(false); alert("Lỗi: " + e.message); }
+    }
+
+    // ================= ADMIN: QUẢN LÝ BẢNG =================
+    async function loadAdminDataTable() {
+        const collection = document.getElementById('admin-data-collection').value;
+        const tbody = document.getElementById('admin-table-body');
+        const thead = document.getElementById('admin-table-head');
+        
+        tbody.innerHTML = '<tr><td colspan="20" class="text-center py-4">Đang tải dữ liệu...</td></tr>';
+        document.getElementById('admin-data-search').value = '';
+
+        await fetchFieldConfigs();
+        const cols = collection === 'students' ? dynamicFields : tableSchemas[collection];
+        
+        let headHtml = '<tr>';
+        cols.forEach(c => headHtml += `<th>${c}</th>`);
+        headHtml += `<th class="text-center sticky-end bg-light">Hành động</th></tr>`;
+        thead.innerHTML = headHtml;
+
+        try {
+            const snap = await db.collection(collection).get();
+            adminDataCache = [];
+            snap.forEach(doc => {
+                let data = doc.data(); data._id = doc.id; 
+                adminDataCache.push(data);
+            });
+            renderAdminTable(adminDataCache, cols);
+        } catch (error) { tbody.innerHTML = `<tr><td colspan="20" class="text-danger">Lỗi: ${error.message}</td></tr>`; }
+    }
+
+    function renderAdminTable(dataArray, cols) {
+        const tbody = document.getElementById('admin-table-body');
+        tbody.innerHTML = '';
+        if(dataArray.length === 0) { tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" class="text-center text-muted py-4">Không có dữ liệu</td></tr>`; return; }
+
+        if(cols.includes('STT')) dataArray.sort((a,b) => (isNaN(parseInt(a['STT']))?9999:parseInt(a['STT'])) - (isNaN(parseInt(b['STT']))?9999:parseInt(b['STT'])));
+
+        dataArray.slice(0, 100).forEach(row => { 
+            let tr = '<tr>';
+            cols.forEach(c => {
+                let val = row[c] || '';
+                if(val.length > 50) val = val.substring(0, 50) + '...'; // Truncate long text
+                tr += `<td>${val}</td>`;
+            });
+            tr += `<td class="text-center bg-light">
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" onclick="openAdminEditModal('${row._id}')">Sửa</button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteAdminRecord('${row._id}')">Xóa</button>
+                   </td></tr>`;
+            tbody.innerHTML += tr;
+        });
+        
+        if(dataArray.length > 100) tbody.innerHTML += `<tr><td colspan="${cols.length + 1}" class="text-center text-muted fst-italic py-3">Đang hiển thị 100 kết quả đầu. Hãy dùng ô Tìm kiếm để xem thêm.</td></tr>`;
+    }
+
+    function filterAdminDataTable() {
+        const query = normalizeString(document.getElementById('admin-data-search').value);
+        const collection = document.getElementById('admin-data-collection').value;
+        const cols = collection === 'students' ? dynamicFields : tableSchemas[collection];
+        
+        if(!query) { renderAdminTable(adminDataCache, cols); return; }
+
+        const filtered = adminDataCache.filter(row => {
+            for(let c of cols) if(normalizeString(row[c]).includes(query)) return true;
+            return false;
+        });
+        renderAdminTable(filtered, cols);
+    }
+
+    function openAdminEditModal(docId) {
+        const collection = document.getElementById('admin-data-collection').value;
+        const rowData = adminDataCache.find(x => x._id === docId);
+        if(!rowData) return;
+        
+        currentAdminDocId = docId;
+        const container = document.getElementById('admin-edit-form-container');
+        const cols = collection === 'students' ? dynamicFields : tableSchemas[collection];
+        
+        let formHtml = '';
+        cols.forEach(c => {
+            const isKey = (collection === 'students' && c === 'Mã') || (collection === 'classes' && c === 'Lớp') || (collection === 'combos' && c === 'Mã TH môn');
+            formHtml += `
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">${c} ${isKey ? '<span class="text-danger">*Khóa</span>' : ''}</label>
+                    ${rowData[c] && rowData[c].length > 100 ? 
+                        `<textarea class="form-control" id="edit-modal-${c}" rows="3" ${isKey ? 'readonly' : ''}>${rowData[c]}</textarea>` : 
+                        `<input type="text" class="form-control" id="edit-modal-${c}" value="${rowData[c] || ''}" ${isKey ? 'readonly style="background:#e9ecef"' : ''}>`
+                    }
+                </div>
+            `;
+        });
+        container.innerHTML = formHtml;
+        new bootstrap.Modal(document.getElementById('adminEditModal')).show();
+    }
+
+    async function saveAdminEdit() {
+        const collection = document.getElementById('admin-data-collection').value;
+        const cols = collection === 'students' ? dynamicFields : tableSchemas[collection];
+        const updates = {};
+        
+        cols.forEach(c => { updates[c] = document.getElementById(`edit-modal-${c}`).value; });
+
+        try {
+            toggleLoading(true, "Đang lưu thay đổi...");
+            await db.collection(collection).doc(currentAdminDocId).set(updates, { merge: true });
+            
+            bootstrap.Modal.getInstance(document.getElementById('adminEditModal')).hide();
+            await loadAdminDataTable(); 
+            if(collection === 'students') allStudentsCache = []; 
+            toggleLoading(false);
+        } catch(e) { toggleLoading(false); alert("Lỗi khi lưu: " + e.message); }
+    }
+
+    async function deleteAdminRecord(docId) {
+        if(!confirm(`⚠️ Bạn có chắc chắn muốn xóa bản ghi này?`)) return;
+        const collection = document.getElementById('admin-data-collection').value;
+        try {
+            toggleLoading(true, "Đang xóa...");
+            await db.collection(collection).doc(docId).delete();
+            await loadAdminDataTable();
+            if(collection === 'students') allStudentsCache = []; 
+            toggleLoading(false);
+        } catch(e) { toggleLoading(false); alert("Xóa thất bại: " + e.message); }
+    }
+
+    // ================= ADMIN: THỐNG KÊ =================
+    async function loadAdminStats() {
+        try {
+            toggleLoading(true, "Đang nạp dữ liệu thống kê...");
+            
+            if(allStudentsCache.length === 0) {
+                const snap = await db.collection('students').get();
+                allStudentsCache = [];
+                snap.forEach(doc => allStudentsCache.push(doc.data()));
+            }
+
+            // Populate classes dropdown
+            const classSet = new Set();
+            allStudentsCache.forEach(s => { if(s['Lớp']) classSet.add(s['Lớp']); });
+            const classArr = Array.from(classSet).sort();
+            
+            const groupEl = document.getElementById('admin-stat-classes-group');
+            groupEl.innerHTML = '';
+            classArr.forEach(c => { groupEl.innerHTML += `<option value="class_${c}">Lớp ${c}</option>`; });
+
+            processAdminStats();
+            toggleLoading(false);
+        } catch(e) { toggleLoading(false); alert("Lỗi tải thống kê: " + e.message); }
+    }
+
+    function processAdminStats() {
+        const filterStr = document.getElementById('admin-stat-filter').value;
+        let filtered = allStudentsCache;
+
+        if (filterStr.startsWith('grade_')) {
+            const grade = filterStr.replace('grade_', '');
+            filtered = allStudentsCache.filter(s => s['Lớp'] && String(s['Lớp']).startsWith(grade));
+        } else if (filterStr.startsWith('class_')) {
+            const cls = filterStr.replace('class_', '');
+            filtered = allStudentsCache.filter(s => s['Lớp'] === cls);
+        }
+
+        let total = filtered.length;
+        let female = 0; let ethnic = 0; let femaleEthnic = 0;
+
+        filtered.forEach(s => {
+            const gt = (s['Giới tính'] || '').toLowerCase().trim();
+            const dt = (s['Dân tộc'] || '').toLowerCase().trim();
+
+            const isFemale = (gt === 'nữ' || gt === 'nu');
+            // Dân tộc thiểu số = Có nhập dân tộc VÀ khác 'kinh'
+            const isEthnic = (dt !== '' && dt !== 'kinh');
+
+            if (isFemale) female++;
+            if (isEthnic) ethnic++;
+            if (isFemale && isEthnic) femaleEthnic++;
+        });
+
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('stat-female').innerText = female;
+        document.getElementById('stat-ethnic').innerText = ethnic;
+        document.getElementById('stat-female-ethnic').innerText = femaleEthnic;
+    }
+
+    // ================= GIAO DIỆN KHÁCH =================
     function switchGuestTab(tabId) {
         document.getElementById('tab-class').classList.remove('active');
         document.getElementById('tab-search').classList.remove('active');
@@ -797,21 +810,83 @@
 
     async function loadGuestData() {
         allStudentsCache = [];
+        await fetchFieldConfigs(); // Load config for dynamic fields
+
         const select = document.getElementById('guest-class-select');
-        select.innerHTML = '<option value="">-- Đang tải dữ liệu... --</option>';
+        select.innerHTML = '<option value="">-- Đang tải... --</option>';
         try {
             const snap = await db.collection('classes').get();
             select.innerHTML = '<option value="">-- Chọn Lớp để xem thông tin --</option>';
             snap.forEach(doc => { select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`; });
         } catch (e) { select.innerHTML = '<option value="">Lỗi tải dữ liệu</option>'; }
+        
         switchGuestTab('class'); 
+    }
+
+    // Render Bảng Khách (Dựa theo Dynamic Fields config visible=true)
+    function renderGuestTableHeaders(theadId) {
+        const thead = document.getElementById(theadId);
+        let html = '<tr>';
+        dynamicFields.forEach(f => {
+            if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Mã' || f === 'Lớp') {
+                html += `<th>${f}</th>`;
+            }
+        });
+        html += '</tr>';
+        thead.innerHTML = html;
+    }
+
+    async function fetchClassDetails() {
+        const className = document.getElementById('guest-class-select').value;
+        const infoDiv = document.getElementById('guest-class-info');
+        if(!className) { infoDiv.style.display = 'none'; return; }
+        
+        renderGuestTableHeaders('guest-table-class-head');
+
+        try {
+            const classDoc = await db.collection('classes').doc(className).get();
+            if(classDoc.exists) {
+                const cData = classDoc.data();
+                document.getElementById('g-teacher').innerText = cData['Giáo viên chủ nhiệm'] || 'N/A';
+                const comboId = cData['Mã TH môn'] || '';
+                document.getElementById('g-combo').innerText = comboId;
+                if(comboId) {
+                    const cbDoc = await db.collection('combos').doc(String(comboId)).get();
+                    if(cbDoc.exists) {
+                        const cbData = cbDoc.data();
+                        document.getElementById('g-mandatory').innerText = cbData['Môn học - hoạt động GD bắt buộc'] || '';
+                        document.getElementById('g-elective').innerText = cbData['Môn tự chọn'] || '';
+                        document.getElementById('g-specialized').innerText = cbData['Các môn có chuyên đề'] || '';
+                    }
+                }
+            }
+
+            const snap = await db.collection('students').where('Lớp', '==', className).get();
+            let arr = []; snap.forEach(d => arr.push(d.data()));
+            arr.sort((a,b) => (isNaN(parseInt(a['STT']))?9999:parseInt(a['STT'])) - (isNaN(parseInt(b['STT']))?9999:parseInt(b['STT'])));
+
+            const tbody = document.getElementById('guest-table-class-body');
+            tbody.innerHTML = '';
+            if(arr.length === 0) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">Chưa có dữ liệu</td></tr>';
+            else {
+                arr.forEach(s => {
+                    let tr = '<tr>';
+                    dynamicFields.forEach(f => {
+                        if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Mã' || f === 'Lớp') {
+                            tr += `<td>${s[f] || ''}</td>`;
+                        }
+                    });
+                    tr += '</tr>';
+                    tbody.innerHTML += tr;
+                });
+            }
+            infoDiv.style.display = 'block';
+        } catch (e) { alert("Lỗi: " + e.message); }
     }
 
     async function forceReloadCache() {
         toggleLoading(true, 'Đang tải lại dữ liệu mới nhất...');
-        allStudentsCache = []; 
-        await loadAllStudentsForSearch(); 
-        searchStudent(); 
+        allStudentsCache = []; await loadAllStudentsForSearch(); searchStudent(); 
         toggleLoading(false);
     }
 
@@ -825,169 +900,113 @@
     }
 
     function searchStudent() {
+        renderGuestTableHeaders('guest-table-search-head');
         const rawQuery = document.getElementById('guest-search-input').value;
         const queryNorm = normalizeString(rawQuery);
         const queryNoSpace = queryNorm.replace(/\s+/g, '');
         
-        const tbody = document.getElementById('guest-search-results');
+        const tbody = document.getElementById('guest-table-search-body');
         tbody.innerHTML = '';
         
-        if (!queryNorm) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Vui lòng nhập tên để tìm kiếm</td></tr>';
-            return;
-        }
+        if (!queryNorm) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Vui lòng nhập từ khóa</td></tr>'; return; }
 
         const results = allStudentsCache.filter(s => {
             const nameNorm = normalizeString(s['Họ và tên'] || '');
+            const idNorm = normalizeString(s['Mã'] || '');
             const initials = nameNorm.split(/\s+/).map(word => word.charAt(0)).join('');
-            return nameNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
+            return nameNorm.includes(queryNorm) || idNorm.includes(queryNorm) || (queryNoSpace.length > 0 && initials.includes(queryNoSpace));
         });
 
         if (results.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Không tìm thấy học sinh phù hợp</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-4">Không tìm thấy học sinh</td></tr>';
         } else {
             results.slice(0, 50).forEach(s => {
-                tbody.innerHTML += `<tr>
-                    <td class="fw-medium text-primary">${s['Họ và tên'] || ''}</td>
-                    <td>${s['Ngày sinh'] || ''}</td>
-                    <td>${s['Giới tính'] || ''}</td>
-                    <td>${s['Dân tộc'] || ''}</td>
-                    <td><span class="badge bg-secondary">${s['Lớp'] || ''}</span></td>
-                </tr>`;
+                let tr = '<tr>';
+                dynamicFields.forEach(f => {
+                    if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Mã' || f === 'Lớp') {
+                        tr += `<td>${f === 'Họ và tên' ? `<b>${s[f]||''}</b>` : (s[f]||'')}</td>`;
+                    }
+                });
+                tr += '</tr>';
+                tbody.innerHTML += tr;
             });
         }
     }
 
-    async function fetchClassDetails() {
-        const className = document.getElementById('guest-class-select').value;
-        const infoDiv = document.getElementById('guest-class-info');
-        if(!className) { infoDiv.style.display = 'none'; return; }
-        
-        try {
-            const classDoc = await db.collection('classes').doc(className).get();
-            if(classDoc.exists) {
-                const cData = classDoc.data();
-                document.getElementById('g-teacher').innerText = cData['Giáo viên chủ nhiệm'] || 'N/A';
-                const comboId = cData['Mã TH môn'] || '';
-                document.getElementById('g-combo').innerText = comboId;
-                
-                if(comboId) {
-                    const cbDoc = await db.collection('combos').doc(String(comboId)).get();
-                    if(cbDoc.exists) {
-                        const cbData = cbDoc.data();
-                        document.getElementById('g-mandatory').innerText = cbData['Môn học - hoạt động GD bắt buộc'] || '';
-                        document.getElementById('g-elective').innerText = cbData['Môn tự chọn'] || '';
-                        document.getElementById('g-specialized').innerText = cbData['Các môn có chuyên đề'] || '';
-                    }
-                }
-            }
-
-            const studentSnap = await db.collection('students').where('Lớp', '==', className).get();
-            let arr = [];
-            studentSnap.forEach(d => arr.push(d.data()));
-            arr.sort((a, b) => (isNaN(parseInt(a['STT']))?9999:parseInt(a['STT'])) - (isNaN(parseInt(b['STT']))?9999:parseInt(b['STT'])));
-
-            const tbody = document.getElementById('guest-student-list');
-            tbody.innerHTML = '';
-            if(arr.length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Chưa có dữ liệu</td></tr>';
-            else {
-                arr.forEach(s => {
-                    tbody.innerHTML += `<tr>
-                        <td>${s['STT'] || ''}</td>
-                        <td class="fw-medium">${s['Họ và tên'] || ''}</td>
-                        <td>${s['Ngày sinh'] || ''}</td>
-                        <td>${s['Giới tính'] || ''}</td>
-                        <td>${s['Dân tộc'] || ''}</td>
-                    </tr>`;
-                });
-            }
-            infoDiv.style.display = 'block';
-        } catch (e) { alert("Lỗi: " + e.message); }
-    }
-
     // ================= CHỨC NĂNG HỌC SINH =================
-    function toggleFieldAccess(fieldId, isAllowed) {
-        const el = document.getElementById(fieldId);
-        if(isAllowed) {
-            el.removeAttribute('readonly');
-            el.classList.remove('readonly-field');
-        } else {
-            el.setAttribute('readonly', true);
-            el.classList.add('readonly-field');
-        }
-    }
-
     async function loginStudent() {
         const sid = document.getElementById('student-id').value.trim();
         if(!sid) { alert("Vui lòng nhập mã học sinh/CCCD!"); return; }
 
         try {
+            await fetchFieldConfigs();
             const doc = await db.collection('students').doc(sid).get();
             if (doc.exists) {
                 showView('student-dashboard');
                 const data = doc.data();
                 
                 document.getElementById('s-old-id').value = sid;
-                document.getElementById('s-code').value = sid; 
-                document.getElementById('s-name').innerText = data['Họ và tên'] || 'Không rõ';
+                document.getElementById('s-name-display').innerText = data['Họ và tên'] || 'Không rõ';
+                document.getElementById('s-class-display').innerText = data['Lớp'] || 'Không rõ';
                 
-                const studentClass = data['Lớp'];
-                document.getElementById('s-class').innerText = studentClass || 'Không rõ';
-                
-                document.getElementById('s-combo-id').innerText = 'Đang tải...';
+                // Lấy tổ hợp môn
                 document.getElementById('s-combo-details').style.display = 'none';
-                
-                if (studentClass) {
-                    const classDoc = await db.collection('classes').doc(studentClass).get();
+                if (data['Lớp']) {
+                    const classDoc = await db.collection('classes').doc(data['Lớp']).get();
                     if (classDoc.exists) {
                         const comboId = classDoc.data()['Mã TH môn'];
                         document.getElementById('s-combo-id').innerText = comboId || 'Không rõ';
-                        
                         if (comboId) {
                             const comboDoc = await db.collection('combos').doc(String(comboId)).get();
                             if (comboDoc.exists) {
-                                const cbData = comboDoc.data();
-                                document.getElementById('s-combo-mandatory').innerText = cbData['Môn học - hoạt động GD bắt buộc'] || '';
-                                document.getElementById('s-combo-elective').innerText = cbData['Môn tự chọn'] || '';
-                                document.getElementById('s-combo-specialized').innerText = cbData['Các môn có chuyên đề'] || '';
+                                document.getElementById('s-combo-mandatory').innerText = comboDoc.data()['Môn học - hoạt động GD bắt buộc'] || '';
+                                document.getElementById('s-combo-elective').innerText = comboDoc.data()['Môn tự chọn'] || '';
+                                document.getElementById('s-combo-specialized').innerText = comboDoc.data()['Các môn có chuyên đề'] || '';
                                 document.getElementById('s-combo-details').style.display = 'block';
                             }
                         }
-                    } else {
-                        document.getElementById('s-combo-id').innerText = 'Chưa phân lớp';
                     }
                 }
-                
-                document.getElementById('s-dob').value = data['Ngày sinh'] || '';
-                document.getElementById('s-gender').value = data['Giới tính'] || '';
-                document.getElementById('s-ethnicity').value = data['Dân tộc'] || '';
-                document.getElementById('s-opinion').value = data['Ý kiến của học sinh'] || '';
 
-                const permDoc = await db.collection('config').doc('permissions').get();
+                // Gen dynamic form
+                const formContainer = document.getElementById('dynamic-student-form');
+                formContainer.innerHTML = '';
                 let canEdit = false;
                 let allowedFieldsList = [];
-                
-                ['s-code', 's-dob', 's-gender', 's-ethnicity', 's-opinion'].forEach(id => toggleFieldAccess(id, false));
 
-                if(permDoc.exists) {
-                    const p = permDoc.data();
-                    if(p.allowId) { toggleFieldAccess('s-code', true); canEdit = true; allowedFieldsList.push('Mã Đăng Nhập'); }
-                    if(p.allowDob) { toggleFieldAccess('s-dob', true); canEdit = true; allowedFieldsList.push('Ngày sinh'); }
-                    if(p.allowGender) { toggleFieldAccess('s-gender', true); canEdit = true; allowedFieldsList.push('Giới tính'); }
-                    if(p.allowEthnicity) { toggleFieldAccess('s-ethnicity', true); canEdit = true; allowedFieldsList.push('Dân tộc'); }
-                    if(p.allowOpinion) { toggleFieldAccess('s-opinion', true); canEdit = true; allowedFieldsList.push('Ý kiến'); }
-                }
+                dynamicFields.forEach(f => {
+                    const isEditable = fieldPermissions[f]?.editable || false;
+                    const isVisible = fieldPermissions[f]?.visible || isEditable || f === 'Mã' || f === 'Họ và tên';
+                    
+                    if (isVisible) {
+                        if(isEditable) { canEdit = true; allowedFieldsList.push(f); }
+                        const val = data[f] || '';
+                        
+                        let inputHtml = '';
+                        if (f === 'Ý kiến của học sinh' || f.toLowerCase().includes('ý kiến') || f.toLowerCase().includes('ghi chú')) {
+                            inputHtml = `<textarea id="s-dyn-${f}" class="form-control ${isEditable ? '' : 'readonly-field'}" rows="3" ${isEditable ? '' : 'readonly'}>${val}</textarea>`;
+                        } else {
+                            inputHtml = `<input type="text" id="s-dyn-${f}" class="form-control ${isEditable ? '' : 'readonly-field'}" value="${val}" ${isEditable ? '' : 'readonly'}>`;
+                        }
+
+                        formContainer.innerHTML += `
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">${f}:</label>
+                                ${inputHtml}
+                            </div>
+                        `;
+                    }
+                });
 
                 const noticeEl = document.getElementById('s-edit-notice');
                 noticeEl.style.display = 'block';
                 if(canEdit) {
                     noticeEl.className = 'alert alert-info py-2 mb-4 small';
-                    noticeEl.innerHTML = `💡 <strong>Thông báo:</strong> Em đang được phép cập nhật các thông tin: <span class="fw-bold text-primary">${allowedFieldsList.join(', ')}</span>. Các trường thông tin nền xám đã bị khóa.`;
+                    noticeEl.innerHTML = `💡 <strong>Thông báo:</strong> Em được phép cập nhật các thông tin: <span class="fw-bold text-primary">${allowedFieldsList.join(', ')}</span>.`;
                 } else {
                     noticeEl.className = 'alert alert-secondary py-2 mb-4 small';
-                    noticeEl.innerHTML = `🔒 <strong>Thông báo:</strong> Hiện tại nhà trường đã khóa tính năng cập nhật. Vui lòng liên hệ GVCN nếu có sai sót.`;
+                    noticeEl.innerHTML = `🔒 <strong>Thông báo:</strong> Nhà trường đã khóa cập nhật. Vui lòng liên hệ GVCN nếu có sai sót.`;
                 }
-                
                 document.getElementById('btn-save-student').style.display = canEdit ? 'block' : 'none';
             } else { alert('Không tìm thấy dữ liệu học sinh với mã này!'); }
         } catch (e) { alert('Lỗi: ' + e.message); }
@@ -995,45 +1014,37 @@
 
     async function updateStudentInfo() {
         const oldId = document.getElementById('s-old-id').value;
-        const newId = document.getElementById('s-code').value.trim();
-        
-        if(!newId) { alert("Mã đăng nhập không được để trống!"); return; }
-
         const updates = {};
-        if(!document.getElementById('s-dob').readOnly) updates['Ngày sinh'] = document.getElementById('s-dob').value;
-        if(!document.getElementById('s-gender').readOnly) updates['Giới tính'] = document.getElementById('s-gender').value;
-        if(!document.getElementById('s-ethnicity').readOnly) updates['Dân tộc'] = document.getElementById('s-ethnicity').value;
-        if(!document.getElementById('s-opinion').readOnly) updates['Ý kiến của học sinh'] = document.getElementById('s-opinion').value;
+        let newId = oldId;
+
+        dynamicFields.forEach(f => {
+            const el = document.getElementById(`s-dyn-${f}`);
+            if (el && !el.readOnly) {
+                updates[f] = el.value.trim();
+                if (f === 'Mã') newId = updates[f];
+            }
+        });
+
+        if(!newId) { alert("Mã đăng nhập không được để trống!"); return; }
 
         try {
             toggleLoading(true, "Đang lưu thay đổi...");
-            
-            if (newId !== oldId && !document.getElementById('s-code').readOnly) {
+            if (newId !== oldId) {
                 const checkExist = await db.collection('students').doc(newId).get();
-                if(checkExist.exists) {
-                    toggleLoading(false);
-                    alert("Mã này đã được sử dụng bởi hồ sơ khác. Vui lòng chọn mã khác!");
-                    return;
-                }
+                if(checkExist.exists) { toggleLoading(false); alert("Mã này đã được sử dụng!"); return; }
 
                 const oldDoc = await db.collection('students').doc(oldId).get();
-                const newData = { ...oldDoc.data(), ...updates, 'Mã': newId };
-                
+                const newData = { ...oldDoc.data(), ...updates };
                 await db.collection('students').doc(newId).set(newData); 
                 await db.collection('students').doc(oldId).delete();     
                 
                 document.getElementById('s-old-id').value = newId;       
-                toggleLoading(false);
-                alert("Đã cập nhật thông tin VÀ ĐỔI MÃ thành công. Lần đăng nhập sau hãy dùng mã mới nhé!");
+                toggleLoading(false); alert("Đã cập nhật & đổi Mã thành công!");
             } else {
                 await db.collection('students').doc(oldId).set(updates, { merge: true });
-                toggleLoading(false);
-                alert('Đã cập nhật thông tin thành công!');
+                toggleLoading(false); alert('Đã cập nhật thông tin thành công!');
             }
-        } catch (error) {
-            toggleLoading(false);
-            alert('Cập nhật thất bại: ' + error.message);
-        }
+        } catch (error) { toggleLoading(false); alert('Lỗi: ' + error.message); }
     }
 </script>
 </body>
