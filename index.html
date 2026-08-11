@@ -52,12 +52,12 @@
 
         /* Hiệu ứng trỏ chuột cho thẻ ở Trang chủ */
         .role-card {
-            cursor: pointer; /* Hiển thị bàn tay */
+            cursor: pointer; 
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             border: 2px solid transparent;
         }
         .role-card:hover {
-            transform: translateY(-5px); /* Nổi thẻ lên nhẹ */
+            transform: translateY(-5px); 
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
             border-color: #cbd5e1;
         }
@@ -117,7 +117,6 @@
 
     <!-- KHÁCH: XEM THÔNG TIN -->
     <div id="guest-view" class="view-section">
-        <!-- Đã sửa showView thành logout để reset hoàn toàn UI -->
         <button class="btn btn-light mb-3 shadow-sm" onclick="logout()">← Quay lại</button>
         <ul class="nav nav-pills mb-4 justify-content-center gap-2">
             <li class="nav-item"><a class="nav-link active px-4" id="tab-class" onclick="switchGuestTab('class')">Tra Cứu Theo Lớp</a></li>
@@ -255,10 +254,11 @@
             </ul>
 
             <div class="tab-content p-4 border-top-0">
+                <!-- Tab: Nạp Excel -->
                 <div class="tab-pane fade show active" id="tab-upload" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="text-primary fw-bold mb-0">Cập Nhật Dữ Liệu</h5>
-                        <button class="btn btn-success btn-sm shadow-sm" onclick="exportDataToExcel()">⬇️ Tải Xuống Toàn Bộ Dữ Liệu</button>
+                        <button class="btn btn-success btn-sm shadow-sm" onclick="exportDataToExcel()">⬇️ Tải Xuống Dữ Liệu Gốc</button>
                     </div>
                     <div class="alert alert-info py-2 small mb-4"><strong>Lưu ý:</strong> Nạp file mới sẽ xóa và ghi đè toàn bộ dữ liệu cũ của danh mục tương ứng. Bảng danh sách học sinh có thể chứa số lượng cột tùy ý. Cột <b>Mã</b> là bắt buộc để làm ID tài khoản.</div>
                     <div class="row g-4">
@@ -280,6 +280,7 @@
                     </div>
                 </div>
 
+                <!-- Tab: Cấu hình Cột -->
                 <div class="tab-pane fade" id="tab-fields" role="tabpanel">
                     <h5 class="text-primary fw-bold mb-3">Cài Đặt Cột Hiển Thị & Quyền Chỉnh Sửa</h5>
                     <p class="text-muted small">Cài đặt các cột dữ liệu của Học sinh sẽ xuất hiện trên giao diện Khách và cho phép Học sinh được sửa. (Dữ liệu được nhận diện tự động từ file Excel Học sinh đã nạp).</p>
@@ -298,6 +299,7 @@
                     <button class="btn btn-warning mt-2 px-5" onclick="saveAdminConfigFields()">Lưu Cấu Hình</button>
                 </div>
 
+                <!-- Tab: Quản lý trực tiếp -->
                 <div class="tab-pane fade" id="tab-manage" role="tabpanel">
                     <h5 class="text-primary fw-bold mb-3">Quản Lý & Chỉnh Sửa Dữ Liệu Trực Tiếp</h5>
                     <div class="row mb-3">
@@ -320,33 +322,33 @@
                     </div>
                 </div>
 
+                <!-- Tab: Thống Kê -->
                 <div class="tab-pane fade" id="tab-stats" role="tabpanel">
-                    <h5 class="text-primary fw-bold mb-3">Thống Kê Số Liệu Học Sinh</h5>
-                    <div class="row mb-4 align-items-end">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Chọn phạm vi thống kê:</label>
-                            <select id="admin-stat-filter" class="form-select" onchange="processAdminStats()">
-                                <option value="all">Toàn trường</option>
-                                <optgroup label="Theo Khối">
-                                    <option value="grade_10">Khối 10</option>
-                                    <option value="grade_11">Khối 11</option>
-                                    <option value="grade_12">Khối 12</option>
-                                </optgroup>
-                                <optgroup label="Theo Lớp" id="admin-stat-classes-group"></optgroup>
-                            </select>
-                        </div>
-                        <div class="col-md-6 text-end text-muted small">
-                            <i>* Tính năng yêu cầu dữ liệu có cột: "Lớp", "Giới tính", "Dân tộc"</i>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-primary fw-bold mb-0">Thống Kê Số Liệu Học Sinh</h5>
+                        <button class="btn btn-success btn-sm shadow-sm" onclick="exportStatsToExcel()">⬇️ Tải Xuất Thống Kê</button>
                     </div>
-                    <div class="row g-3" id="admin-stat-results">
-                        <div class="col-md-3 col-6"><div class="card bg-primary text-white text-center p-3 h-100"><h6 class="mb-1 opacity-75">Tổng Số</h6><h2 class="fw-bold mb-0" id="stat-total">-</h2></div></div>
-                        <div class="col-md-3 col-6"><div class="card bg-danger text-white text-center p-3 h-100"><h6 class="mb-1 opacity-75">Học sinh Nữ</h6><h2 class="fw-bold mb-0" id="stat-female">-</h2></div></div>
-                        <div class="col-md-3 col-6"><div class="card bg-success text-white text-center p-3 h-100"><h6 class="mb-1 opacity-75">Dân Tộc Thiểu Số</h6><h2 class="fw-bold mb-0" id="stat-ethnic">-</h2></div></div>
-                        <div class="col-md-3 col-6"><div class="card bg-warning text-dark text-center p-3 h-100"><h6 class="mb-1 opacity-75">Nữ DTTS</h6><h2 class="fw-bold mb-0" id="stat-female-ethnic">-</h2></div></div>
+                    <p class="text-muted small"><i>* Lưu ý: Tính năng thống kê yêu cầu dữ liệu phải có các cột tên chính xác là: "Lớp", "Giới tính", "Dân tộc". Dữ liệu trống sẽ được tính là 0.</i></p>
+                    
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover align-middle text-center" id="admin-stat-table">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th class="text-start">Lớp / Khối</th>
+                                    <th>Tổng Số</th>
+                                    <th>Học sinh Nữ</th>
+                                    <th>Dân Tộc Thiểu Số</th>
+                                    <th>Nữ DTTS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-stat-results">
+                                <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
+                <!-- Tab: Bảo Mật -->
                 <div class="tab-pane fade" id="tab-security" role="tabpanel">
                     <h5 class="text-danger fw-bold mb-3">Bảo Mật Hệ Thống</h5>
                     <p class="text-muted">Đổi mã đăng nhập để bảo vệ trang quản trị khỏi truy cập trái phép.</p>
@@ -414,7 +416,6 @@
         (viewId === 'admin-dashboard' || viewId === 'student-dashboard') ? btnLogout.classList.remove('d-none') : btnLogout.classList.add('d-none');
     }
 
-    // [CẬP NHẬT] Hàm Logout làm sạch hoàn toàn giao diện
     function logout() {
         showView('role-selector');
         
@@ -758,10 +759,10 @@
         } catch(e) { toggleLoading(false); alert("Xóa thất bại: " + e.message); }
     }
 
-    // ================= ADMIN: THỐNG KÊ =================
+    // ================= ADMIN: THỐNG KÊ TOÀN DIỆN MỚI =================
     async function loadAdminStats() {
         try {
-            toggleLoading(true, "Đang nạp dữ liệu thống kê...");
+            toggleLoading(true, "Đang xử lý dữ liệu thống kê...");
             
             if(allStudentsCache.length === 0) {
                 const snap = await db.collection('students').get();
@@ -769,50 +770,109 @@
                 snap.forEach(doc => allStudentsCache.push(doc.data()));
             }
 
-            const classSet = new Set();
-            allStudentsCache.forEach(s => { if(s['Lớp']) classSet.add(s['Lớp']); });
-            const classArr = Array.from(classSet).sort();
-            
-            const groupEl = document.getElementById('admin-stat-classes-group');
-            groupEl.innerHTML = '';
-            classArr.forEach(c => { groupEl.innerHTML += `<option value="class_${c}">Lớp ${c}</option>`; });
-
-            processAdminStats();
+            renderAdminStats();
             toggleLoading(false);
         } catch(e) { toggleLoading(false); alert("Lỗi tải thống kê: " + e.message); }
     }
 
-    function processAdminStats() {
-        const filterStr = document.getElementById('admin-stat-filter').value;
-        let filtered = allStudentsCache;
+    function renderAdminStats() {
+        let statsAll = { total: 0, female: 0, ethnic: 0, femaleEthnic: 0 };
+        let grades = {}; // Cấu trúc lưu trữ theo Khối > Lớp
 
-        if (filterStr.startsWith('grade_')) {
-            const grade = filterStr.replace('grade_', '');
-            filtered = allStudentsCache.filter(s => s['Lớp'] && String(s['Lớp']).startsWith(grade));
-        } else if (filterStr.startsWith('class_')) {
-            const cls = filterStr.replace('class_', '');
-            filtered = allStudentsCache.filter(s => s['Lớp'] === cls);
-        }
+        // 1. Phân loại và tính toán
+        allStudentsCache.forEach(s => {
+            let clsName = (s['Lớp'] || 'Chưa phân lớp').toString().trim();
+            
+            // Tách tên khối dựa trên số đầu tiên của tên Lớp (VD: 10A1 -> 10)
+            let match = clsName.match(/^\d+/);
+            let gradeName = match ? match[0] : 'Khác';
 
-        let total = filtered.length;
-        let female = 0; let ethnic = 0; let femaleEthnic = 0;
+            // Khởi tạo Object nếu chưa có
+            if (!grades[gradeName]) grades[gradeName] = { total: 0, female: 0, ethnic: 0, femaleEthnic: 0, classes: {} };
+            if (!grades[gradeName].classes[clsName]) grades[gradeName].classes[clsName] = { total: 0, female: 0, ethnic: 0, femaleEthnic: 0 };
 
-        filtered.forEach(s => {
-            const gt = (s['Giới tính'] || '').toLowerCase().trim();
-            const dt = (s['Dân tộc'] || '').toLowerCase().trim();
+            let gt = (s['Giới tính'] || '').toLowerCase().trim();
+            let dt = (s['Dân tộc'] || '').toLowerCase().trim();
 
-            const isFemale = (gt === 'nữ' || gt === 'nu');
-            const isEthnic = (dt !== '' && dt !== 'kinh');
+            let isFemale = (gt === 'nữ' || gt === 'nu');
+            let isEthnic = (dt !== '' && dt !== 'kinh');
 
-            if (isFemale) female++;
-            if (isEthnic) ethnic++;
-            if (isFemale && isEthnic) femaleEthnic++;
+            // Cộng dồn vào Lớp
+            grades[gradeName].classes[clsName].total++;
+            if (isFemale) grades[gradeName].classes[clsName].female++;
+            if (isEthnic) grades[gradeName].classes[clsName].ethnic++;
+            if (isFemale && isEthnic) grades[gradeName].classes[clsName].femaleEthnic++;
+
+            // Cộng dồn vào Khối
+            grades[gradeName].total++;
+            if (isFemale) grades[gradeName].female++;
+            if (isEthnic) grades[gradeName].ethnic++;
+            if (isFemale && isEthnic) grades[gradeName].femaleEthnic++;
+
+            // Cộng dồn vào Toàn trường
+            statsAll.total++;
+            if (isFemale) statsAll.female++;
+            if (isEthnic) statsAll.ethnic++;
+            if (isFemale && isEthnic) statsAll.femaleEthnic++;
         });
 
-        document.getElementById('stat-total').innerText = total;
-        document.getElementById('stat-female').innerText = female;
-        document.getElementById('stat-ethnic').innerText = ethnic;
-        document.getElementById('stat-female-ethnic').innerText = femaleEthnic;
+        // 2. Xuất ra HTML
+        let tbody = document.getElementById('admin-stat-results');
+        let html = '';
+
+        // Sắp xếp các Khối (10, 11, 12, Khác)
+        Object.keys(grades).sort().forEach(g => {
+            // Danh sách các Lớp trong khối
+            Object.keys(grades[g].classes).sort().forEach(c => {
+                let cStats = grades[g].classes[c];
+                html += `
+                    <tr>
+                        <td class="text-start ps-4">${c}</td>
+                        <td>${cStats.total}</td>
+                        <td>${cStats.female}</td>
+                        <td>${cStats.ethnic}</td>
+                        <td>${cStats.femaleEthnic}</td>
+                    </tr>
+                `;
+            });
+            
+            // Dòng Tổng của Khối (Nổi bật)
+            let gStats = grades[g];
+            html += `
+                <tr class="table-info fw-bold">
+                    <td class="text-start">Tổng Khối ${g}</td>
+                    <td class="text-primary">${gStats.total}</td>
+                    <td class="text-danger">${gStats.female}</td>
+                    <td class="text-success">${gStats.ethnic}</td>
+                    <td class="text-warning text-dark">${gStats.femaleEthnic}</td>
+                </tr>
+            `;
+        });
+
+        // Dòng Tổng Toàn Trường (Rất Nổi Bật)
+        html += `
+            <tr class="table-primary fs-6" style="border-top: 3px solid #0d6efd;">
+                <td class="text-start fw-bold text-uppercase">Tổng Toàn Trường</td>
+                <td class="fw-bold">${statsAll.total}</td>
+                <td class="fw-bold text-danger">${statsAll.female}</td>
+                <td class="fw-bold text-success">${statsAll.ethnic}</td>
+                <td class="fw-bold text-warning text-dark">${statsAll.femaleEthnic}</td>
+            </tr>
+        `;
+
+        tbody.innerHTML = html;
+    }
+
+    function exportStatsToExcel() {
+        const table = document.getElementById('admin-stat-table');
+        if (!table) { alert("Không tìm thấy bảng dữ liệu!"); return; }
+        
+        try {
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Thống Kê"});
+            XLSX.writeFile(wb, "ThongKe_HocSinh_THPT_TranPhu.xlsx");
+        } catch (e) {
+            alert('Lỗi xuất dữ liệu: ' + e.message);
+        }
     }
 
     // ================= GIAO DIỆN KHÁCH =================
@@ -833,7 +893,6 @@
     }
 
     async function loadGuestData() {
-        // [CẬP NHẬT] Xóa cache khi khách vào
         allStudentsCache = [];
         await fetchFieldConfigs();
 
