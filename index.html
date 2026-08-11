@@ -65,6 +65,10 @@
         .role-card-success:hover { border-color: #10b981; }
         .role-card-primary:hover { border-color: #3b82f6; }
         .role-card-danger:hover { border-color: #ef4444; }
+        
+        /* Con trỏ cho modal xuất excel */
+        .cursor-pointer { cursor: pointer; }
+        .export-field-badge:hover { filter: brightness(0.9); }
     </style>
 </head>
 <body>
@@ -282,7 +286,7 @@
                 <div class="tab-pane fade show active" id="tab-upload" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="text-primary fw-bold mb-0">Cập Nhật Dữ Liệu</h5>
-                        <button class="btn btn-success btn-sm shadow-sm" onclick="exportDataToExcel()">⬇️ Tải Xuống Dữ Liệu Gốc</button>
+                        <button class="btn btn-success btn-sm shadow-sm" onclick="openExportModal()">⬇️ Tải Xuống Dữ Liệu Gốc</button>
                     </div>
                     <div class="alert alert-info py-2 small mb-4"><strong>Lưu ý:</strong> Nạp file mới sẽ xóa và ghi đè toàn bộ dữ liệu cũ của danh mục tương ứng. Bảng danh sách học sinh có thể chứa số lượng cột tùy ý. Cột <b>Mã</b> là bắt buộc để làm ID tài khoản.</div>
                     <div class="row g-4">
@@ -307,7 +311,6 @@
                 <div class="tab-pane fade" id="tab-fields" role="tabpanel">
                     <h5 class="text-primary fw-bold mb-3">Cài Đặt Cột Hiển Thị & Quyền Chỉnh Sửa</h5>
                     
-                    <!-- Switch cho chức năng đăng ký chuyển lớp -->
                     <div class="alert alert-warning mb-4">
                         <div class="form-check form-switch fs-6 mb-1">
                             <input class="form-check-input" type="checkbox" id="perm-transfer">
@@ -389,7 +392,7 @@
     </div>
 </div>
 
-<!-- Modal Sửa Dữ Liệu -->
+<!-- Modal Sửa Dữ Liệu Quản Trị -->
 <div class="modal fade" id="adminEditModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -401,6 +404,38 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
         <button type="button" class="btn btn-primary" onclick="saveAdminEdit()">Lưu Thay Đổi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tùy Chọn Xuất Excel -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Tùy chọn Xuất Dữ Liệu Học Sinh</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Nhấn vào các cột bên trái để thêm vào danh sách xuất. Thứ tự chọn ở bên phải sẽ là thứ tự cột trong file Excel xuất ra. Dữ liệu sẽ tự động được sắp xếp theo <b>Lớp</b> và <b>STT</b>.</p>
+        <div class="row">
+            <div class="col-md-6 border-end">
+                <h6 class="fw-bold text-primary mb-3">Cột khả dụng (Bấm để thêm)</h6>
+                <div id="export-available-fields" class="d-flex flex-wrap gap-2"></div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-success mb-0">Cột đã chọn (Theo thứ tự)</h6>
+                    <button class="btn btn-sm btn-outline-danger py-0" onclick="clearExportFields()">Xóa hết</button>
+                </div>
+                <ul class="list-group" id="export-selected-fields"></ul>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-success" onclick="executeExport()">⬇️ Tiến hành Tải Xuống</button>
       </div>
     </div>
   </div>
@@ -432,6 +467,10 @@
     let currentAdminDocId = null;
     let dynamicFields = [];
     let fieldPermissions = {};
+    
+    // Biến cho Export Modal
+    let exportAvailableFields = [];
+    let exportSelectedFields = [];
 
     const tableSchemas = {
         classes: ['Lớp', 'Mã TH môn', 'Giáo viên chủ nhiệm'],
@@ -448,6 +487,7 @@
 
     function logout() {
         showView('role-selector');
+        
         document.getElementById('admin-pw').value = '';
         document.getElementById('student-id').value = '';
         document.getElementById('guest-search-input').value = '';
@@ -507,7 +547,7 @@
         }
     }
 
-    // ================= ADMIN: NẠP & XUẤT =================
+    // ================= ADMIN: NẠP & XUẤT TÙY BIẾN =================
     function readExcelFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -587,23 +627,118 @@
         }
     }
 
-    async function exportDataToExcel() {
+    // Modal Xuất Dữ liệu
+    async function openExportModal() {
+        await fetchFieldConfigs();
+        
+        let allPossibleFields = [...dynamicFields];
+        if(!allPossibleFields.includes('Nguyện vọng chuyển lớp')) {
+            allPossibleFields.push('Nguyện vọng chuyển lớp');
+        }
+        
+        exportSelectedFields = [...allPossibleFields]; // Mặc định chọn tất cả
+        renderExportUI(allPossibleFields);
+        
+        new bootstrap.Modal(document.getElementById('exportModal')).show();
+    }
+
+    function renderExportUI(allPossibleFields) {
+        // Cập nhật Available (chỉ hiện những cái chưa có trong Selected)
+        const availContainer = document.getElementById('export-available-fields');
+        availContainer.innerHTML = '';
+        allPossibleFields.forEach(f => {
+            if(!exportSelectedFields.includes(f)) {
+                availContainer.innerHTML += `<span class="badge bg-secondary p-2 cursor-pointer export-field-badge" onclick="addExportField('${f}')">+ ${f}</span>`;
+            }
+        });
+
+        // Cập nhật Selected
+        const selectedContainer = document.getElementById('export-selected-fields');
+        selectedContainer.innerHTML = '';
+        if(exportSelectedFields.length === 0) {
+            selectedContainer.innerHTML = '<li class="list-group-item text-muted text-center py-3 fst-italic">Chưa có cột nào được chọn</li>';
+        } else {
+            exportSelectedFields.forEach((f, idx) => {
+                selectedContainer.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center p-2 mb-1 border rounded bg-light">
+                        <span><span class="badge bg-dark me-2">${idx + 1}</span> ${f}</span>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeExportField('${f}')">✕</button>
+                    </li>
+                `;
+            });
+        }
+    }
+
+    function addExportField(field) {
+        if(!exportSelectedFields.includes(field)) {
+            exportSelectedFields.push(field);
+            let all = [...dynamicFields];
+            if(!all.includes('Nguyện vọng chuyển lớp')) all.push('Nguyện vọng chuyển lớp');
+            renderExportUI(all);
+        }
+    }
+
+    function removeExportField(field) {
+        exportSelectedFields = exportSelectedFields.filter(f => f !== field);
+        let all = [...dynamicFields];
+        if(!all.includes('Nguyện vọng chuyển lớp')) all.push('Nguyện vọng chuyển lớp');
+        renderExportUI(all);
+    }
+
+    function clearExportFields() {
+        exportSelectedFields = [];
+        let all = [...dynamicFields];
+        if(!all.includes('Nguyện vọng chuyển lớp')) all.push('Nguyện vọng chuyển lớp');
+        renderExportUI(all);
+    }
+
+    async function executeExport() {
+        if(exportSelectedFields.length === 0) {
+            alert("Vui lòng chọn ít nhất 1 cột để xuất dữ liệu học sinh!");
+            return;
+        }
+
         try {
+            bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
             toggleLoading(true, 'Đang gom dữ liệu, vui lòng chờ...');
             const wb = XLSX.utils.book_new();
 
+            // 1. Xuất Lớp
             const clsSnap = await db.collection('classes').get();
             const clsData = []; clsSnap.forEach(d => clsData.push(d.data()));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clsData), "Thông tin Lớp");
 
+            // 2. Xuất Tổ Hợp
             const cbSnap = await db.collection('combos').get();
             const cbData = []; cbSnap.forEach(d => cbData.push(d.data()));
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cbData), "Tổ Hợp Môn");
 
+            // 3. Xuất Học Sinh (Sắp xếp Lớp -> STT, filter cột)
             const stSnap = await db.collection('students').get();
             const stData = []; stSnap.forEach(d => stData.push(d.data()));
-            stData.sort((a, b) => (isNaN(parseInt(a['STT'])) ? 9999 : parseInt(a['STT'])) - (isNaN(parseInt(b['STT'])) ? 9999 : parseInt(b['STT'])));
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stData), "Học Sinh");
+            
+            // Sort: Lớp -> STT
+            stData.sort((a, b) => {
+                let classA = (a['Lớp'] || '').toString().trim();
+                let classB = (b['Lớp'] || '').toString().trim();
+                let cmp = classA.localeCompare(classB);
+                if (cmp !== 0) return cmp;
+                
+                let sttA = isNaN(parseInt(a['STT'])) ? 9999 : parseInt(a['STT']);
+                let sttB = isNaN(parseInt(b['STT'])) ? 9999 : parseInt(b['STT']);
+                return sttA - sttB;
+            });
+
+            // Lọc cột theo thứ tự exportSelectedFields
+            const finalStData = stData.map(s => {
+                let row = {};
+                exportSelectedFields.forEach(f => {
+                    row[f] = s[f] !== undefined ? s[f] : '';
+                });
+                return row;
+            });
+
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(finalStData), "Học Sinh");
 
             XLSX.writeFile(wb, "DuLieuTruong_THPT_TranPhu.xlsx");
             toggleLoading(false);
@@ -616,7 +751,6 @@
         const tbody = document.getElementById('admin-config-fields-body');
         tbody.innerHTML = '';
         
-        // Nạp cấu hình Transfer
         document.getElementById('perm-transfer').checked = fieldPermissions['allowTransfer'] || false;
 
         dynamicFields.forEach(f => {
@@ -658,7 +792,6 @@
             newPerms[f].editable = el.checked;
         });
 
-        // Lưu quyền Transfer
         newPerms['allowTransfer'] = document.getElementById('perm-transfer').checked;
 
         try {
@@ -687,7 +820,7 @@
             });
             if(count > 0) batches.push(batch.commit());
             await Promise.all(batches);
-            allStudentsCache = []; // reset cache
+            allStudentsCache = []; 
             toggleLoading(false);
             alert("✅ Đã xóa toàn bộ nguyện vọng chuyển lớp thành công!");
         } catch (e) { toggleLoading(false); alert("Lỗi: " + e.message); }
@@ -705,7 +838,6 @@
         await fetchFieldConfigs();
         let cols = collection === 'students' ? dynamicFields : tableSchemas[collection];
         
-        // Thêm trường nguyện vọng vào giao diện quản lý nếu đang quản lý hs
         if(collection === 'students' && !cols.includes('Nguyện vọng chuyển lớp')) cols.push('Nguyện vọng chuyển lớp');
 
         let headHtml = '<tr>';
@@ -797,7 +929,7 @@
         const updates = {};
         cols.forEach(c => { 
             let val = document.getElementById(`edit-modal-${c}`).value;
-            if (val === '') updates[c] = firebase.firestore.FieldValue.delete(); // allow removing fields
+            if (val === '') updates[c] = firebase.firestore.FieldValue.delete();
             else updates[c] = val;
         });
 
@@ -932,7 +1064,7 @@
         const thead = document.getElementById(theadId);
         let html = '<tr>';
         dynamicFields.forEach(f => {
-            if (f === 'Mã' || f === 'Nguyện vọng chuyển lớp') return; // ẨN MÃ và NGUYỆN VỌNG CHUYỂN LỚP với Khách
+            if (f === 'Mã' || f === 'Nguyện vọng chuyển lớp') return; 
             if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Lớp' || f === 'STT') {
                 html += `<th>${f}</th>`;
             }
@@ -1028,7 +1160,7 @@
             results.slice(0, 50).forEach(s => {
                 let tr = '<tr>';
                 dynamicFields.forEach(f => {
-                    if (f === 'Mã' || f === 'Nguyện vọng chuyển lớp') return;
+                    if (f === 'Mã' || f === 'Nguyện vọng chuyển lớp') return; 
                     if (fieldPermissions[f]?.visible || f === 'Họ và tên' || f === 'Lớp' || f === 'STT') {
                         tr += `<td>${f === 'Họ và tên' ? `<b>${s[f]||''}</b>` : (s[f]||'')}</td>`;
                     }
@@ -1057,7 +1189,6 @@
                 document.getElementById('s-class-display').innerText = studentClass || 'Không rõ';
                 document.getElementById('s-header-info').style.display = 'block';
                 
-                // Lấy tổ hợp môn
                 document.getElementById('s-combo-details').style.display = 'none';
                 if (studentClass) {
                     const classDoc = await db.collection('classes').doc(studentClass).get();
@@ -1078,14 +1209,13 @@
                     }
                 }
 
-                // Gen dynamic form cho hồ sơ cá nhân
                 const formContainer = document.getElementById('dynamic-student-form');
                 formContainer.innerHTML = '';
                 let canEdit = false;
                 let allowedFieldsList = [];
 
                 dynamicFields.forEach(f => {
-                    if (f === 'Nguyện vọng chuyển lớp') return; // Không vẽ vào form chỉnh sửa, xử lý riêng ở dưới
+                    if (f === 'Nguyện vọng chuyển lớp') return; 
                     
                     const isEditable = fieldPermissions[f]?.editable || false;
                     const isVisible = fieldPermissions[f]?.visible || isEditable || f === 'Mã' || f === 'Họ và tên';
@@ -1111,11 +1241,10 @@
                     noticeEl.innerHTML = `💡 <strong>Thông báo:</strong> Em được phép cập nhật các thông tin: <span class="fw-bold text-primary">${allowedFieldsList.join(', ')}</span>.`;
                 } else {
                     noticeEl.className = 'alert alert-secondary py-2 mb-4 small';
-                    noticeEl.innerHTML = `🔒 <strong>Thông báo:</strong> Nhà trường đã khóa tính năng cập nhật hồ sơ.`;
+                    noticeEl.innerHTML = `🔒 <strong>Thông báo:</strong> Nhà trường đã khóa cập nhật. Vui lòng liên hệ GVCN nếu có sai sót.`;
                 }
                 document.getElementById('btn-save-student').style.display = canEdit ? 'block' : 'none';
 
-                // ================== CHỨC NĂNG CHUYỂN LỚP (CHỈ KHỐI 10) ==================
                 const isGrade10 = studentClass && String(studentClass).startsWith('10');
                 const transferSection = document.getElementById('s-transfer-section');
                 
@@ -1166,13 +1295,11 @@
         } catch (error) { toggleLoading(false); alert('Lỗi: ' + error.message); }
     }
 
-    // ================= LOGIC XỬ LÝ CHUYỂN LỚP (TÍNH TOÁN ON-THE-FLY) =================
     async function loadTransferClasses(currentClass, currentAspiration) {
         const tbody = document.getElementById('s-transfer-tbody');
         tbody.innerHTML = '<tr><td colspan="6">Đang tải danh sách & tính toán sĩ số...</td></tr>';
         
         try {
-            // Lấy danh sách lớp khối 10
             const classSnap = await db.collection('classes').get();
             let grade10Classes = [];
             classSnap.forEach(d => {
@@ -1180,7 +1307,6 @@
             });
             grade10Classes.sort((a,b) => a.id.localeCompare(b.id));
 
-            // Lấy toàn bộ HS khối 10 để tính sĩ số, tăng, giảm
             const hsSnap = await db.collection('students').get();
             let stats = {};
             grade10Classes.forEach(c => stats[c.id] = { total: 0, increase: 0, decrease: 0 });
@@ -1190,17 +1316,16 @@
                 let c = data['Lớp'];
                 if(c && c.startsWith('10')) {
                     if(!stats[c]) stats[c] = { total:0, increase:0, decrease:0 };
-                    stats[c].total++; // Sĩ số gốc
+                    stats[c].total++; 
                     
                     let asp = data['Nguyện vọng chuyển lớp'];
                     if(asp && asp !== c && stats[asp]) {
-                        stats[c].decrease++; // Lớp cũ bị giảm
-                        stats[asp].increase++; // Lớp mục tiêu được tăng
+                        stats[c].decrease++; 
+                        stats[asp].increase++; 
                     }
                 }
             });
 
-            // Render
             tbody.innerHTML = '';
             grade10Classes.forEach(c => {
                 let s = stats[c.id];
@@ -1241,7 +1366,7 @@
             try {
                 toggleLoading(true, "Đang đăng ký nguyện vọng...");
                 await db.collection('students').doc(studentId).update({ 'Nguyện vọng chuyển lớp': targetClass });
-                await loginStudent(); // reload toàn bộ form HS để cập nhật bảng Tăng/Giảm
+                await loginStudent(); 
                 toggleLoading(false);
                 alert("Đăng ký thành công!");
             } catch (e) {
@@ -1259,7 +1384,7 @@
                 toggleLoading(true, "Đang hủy đăng ký...");
                 const studentId = document.getElementById('s-old-id').value;
                 await db.collection('students').doc(studentId).update({ 'Nguyện vọng chuyển lớp': firebase.firestore.FieldValue.delete() });
-                await loginStudent(); // reload lại để cập nhật bảng
+                await loginStudent(); 
                 toggleLoading(false);
             } catch (e) {
                 toggleLoading(false);
